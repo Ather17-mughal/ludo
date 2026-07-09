@@ -1,4 +1,4 @@
-
+Anther 
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>Ludo — Double Trouble Rules</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght=500;700;800&family=Nunito:wght=500;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --felt-1:#0f3d2e;
@@ -229,7 +229,7 @@
 </head>
 <body>
 
-<audio id="stepAudio" src="http://googleusercontent.com/file_content/0" preload="auto"></audio>
+<audio id="stepAudio" src="http://googleusercontent.com/file_content/0" preload="auto" crossorigin="anonymous"></audio>
 
 <div class="app">
   <h1>🎲 Ludo — Double Trouble</h1>
@@ -351,16 +351,48 @@ const HEXSOLID = { red:'#e8483a', green:'#2fae66', yellow:'#f2ab27', blue:'#3a7d
 let state = null;
 let isAnimatingMove = false; 
 
-// Multi-channel trigger mechanism ensures step overlap sounds never cut out
+// Web Audio API bypass layer to guarantee absolute browser-unlock compliance
+let audioCtx = null;
+let audioBuffer = null;
+
+async function forceUnlockBrowserAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') {
+    await audioCtx.resume();
+  }
+  
+  // Pre-load file into memory immediately upon click interaction
+  const audioEl = document.getElementById('stepAudio');
+  if (audioEl && !audioBuffer) {
+    try {
+      const response = await fetch(audioEl.src);
+      const arrayBuffer = await response.arrayBuffer();
+      audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    } catch(e) {
+      console.log("Audio pipeline buffered fallback context loading:", e);
+    }
+  }
+}
+
 function playStepSound() {
-  const audioNode = document.getElementById('stepAudio');
-  if (audioNode) {
-    const clone = audioNode.cloneNode(true);
-    clone.volume = 1.0;
-    clone.play().then(() => {
-      // Cleanup DOM node allocations once completed
-      clone.addEventListener('ended', () => clone.remove());
-    }).catch(e => console.log("Audio play deferred or interacting window focus needed:", e));
+  if (audioCtx && audioBuffer) {
+    // Blazing fast direct hardware audio graph scheduling
+    const source = audioCtx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(audioCtx.destination);
+    source.start(0);
+  } else {
+    // Dynamic element node streaming fallback
+    const audioNode = document.getElementById('stepAudio');
+    if (audioNode) {
+      const clone = audioNode.cloneNode(true);
+      clone.volume = 1.0;
+      clone.play().then(() => {
+        clone.addEventListener('ended', () => clone.remove());
+      }).catch(e => console.log("Streaming block trace:", e));
+    }
   }
 }
 
@@ -989,7 +1021,10 @@ labels.forEach(lbl => {
   });
 });
 
-document.getElementById('enterGameBtn').addEventListener('click', () => {
+document.getElementById('enterGameBtn').addEventListener('click', async () => {
+  // Trigger audio pipeline permission handshake via single click interaction trace
+  await forceUnlockBrowserAudio();
+  
   const selectedMode = document.querySelector('input[name="gameMode"]:checked').value;
   document.getElementById('rulesGateway').classList.remove('show');
   init(selectedMode);
