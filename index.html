@@ -1,11 +1,4 @@
-Ah, I see exactly what happened! In the previous response, the code block got cut off right at the CSS styles (`.board-wrap.blue-turn`), which left the entire rest of the HTML, SVG board, and JavaScript engine completely missing from the file. That's why you're just seeing an empty brown square.
 
-Here is the **complete, fully intact, and completely fixed** code block with all requirements properly met and no missing chunks:
-
-```python
-from IPython.display import HTML
-
-html_content = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -564,7 +557,7 @@ function renderTokens(){
           g.appendChild(el('circle',{cx,cy,r:14,fill:'none',stroke:'#ffffff','stroke-width':1.4,'stroke-dasharray':'2 2'}));
         }
         if(isMovable){
-          g.addEventListener('click', (e)=>onTokenClick(p.color, t.id, cx, cy, legalDiceIdx));
+          g.addEventListener('click', (e)=>onTokenClick(p.color, t.id, cx, cy, legalDiceIdx, t.state));
         }
         layer.appendChild(g);
       });
@@ -572,9 +565,20 @@ function renderTokens(){
   }
 }
 
-function onTokenClick(color, tokenId, cx, cy, legalDiceIdx){
+function onTokenClick(color, tokenId, cx, cy, legalDiceIdx, tokenState){
   if(state.phase !== 'moving' || color !== currentPlayer().color) return;
   
+  // REQUIREMENT FIX: If the token is inside the home yard, do NOT show options or popovers.
+  // It instantly uses whatever die index gives it the open capability (typically the 6).
+  if (tokenState === 'yard') {
+    // Under custom rules, doubles act as double 6s. Find the first usable option.
+    const openIdx = legalDiceIdx.find(idx => state.dice[idx] === 6 || state.diceIsDouble);
+    if (openIdx !== undefined) {
+      performMove(tokenId, openIdx);
+      return;
+    }
+  }
+
   if(legalDiceIdx.length === 1) {
     performMove(tokenId, legalDiceIdx[0]);
     return;
@@ -787,8 +791,3 @@ init();
 </script>
 </body>
 </html>
-"""
-
-display(HTML(html_content))
-
-```
