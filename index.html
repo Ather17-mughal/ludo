@@ -1,6 +1,4 @@
-from IPython.display import HTML
 
-html_content = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -27,15 +25,8 @@ html_content = """
     --blue-dark:#1f4fb8;
     --gold:#e9c46a;
   }
-  *{
-    box-sizing:border-box;
-    -webkit-tap-highlight-color:transparent;
-  }
-  html,body{
-    margin:0;
-    padding:0;
-    height:100%;
-  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
   body{
     font-family:'Nunito',sans-serif;
     background:
@@ -87,29 +78,12 @@ html_content = """
     gap:10px;
   }
   .turn-chip{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    font-family:'Baloo 2';
-    font-weight:700;
-    font-size:15px;
+    display:flex;align-items:center;gap:8px;
+    font-family:'Baloo 2';font-weight:700;font-size:15px;
   }
-  .swatch{
-    width:20px;
-    height:20px;
-    border-radius:50%;
-    box-shadow:inset 0 -2px 3px rgba(0,0,0,0.35), 0 0 0 2px rgba(255,255,255,0.5);
-  }
-  #turnName {
-    display: none;
-  }
-  .status-line{
-    font-size:11.5px;
-    color:#cfe8da;
-    min-height:14px;
-    text-align:right;
-    flex:1;
-  }
+  .swatch{width:20px;height:20px;border-radius:50%;box-shadow:inset 0 -2px 3px rgba(0,0,0,0.35), 0 0 0 2px rgba(255,255,255,0.5);}
+  #turnName { display: none; } /* Hide the turn name text */
+  .status-line{font-size:11.5px;color:#cfe8da;min-height:14px;text-align:right;flex:1;}
   /* ---------- board ---------- */
   .board-wrap{
     width:100%;
@@ -133,30 +107,13 @@ html_content = """
   .board-wrap.blue-turn {
     box-shadow:0 0 10px 5px var(--blue), 0 12px 30px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(0,0,0,0.25);
   }
-  svg#board{
-    width:100%;
-    height:100%;
-    display:block;
-    border-radius:10px;
-    overflow:visible;
-  }
-  .token{
-    cursor:pointer;
-    transition:transform .18s ease;
-  }
-  .token.movable{
-    animation:pulse 1s ease-in-out infinite;
-  }
-  .token.movable:hover{
-    transform:scale(1.12);
-  }
+  svg#board{width:100%;height:100%;display:block;border-radius:10px;overflow:visible;}
+  .token{cursor:pointer;transition:transform .18s ease;}
+  .token.movable{animation:pulse 1s ease-in-out infinite;}
+  .token.movable:hover{transform:scale(1.12);}
   @keyframes pulse{
-    0%,100%{
-      filter:drop-shadow(0 0 0px rgba(255,255,255,0));
-    }
-    50%{
-      filter:drop-shadow(0 0 6px rgba(255,255,255,0.9));
-    }
+    0%,100%{filter:drop-shadow(0 0 0px rgba(255,255,255,0));}
+    50%{filter:drop-shadow(0 0 6px rgba(255,255,255,0.9));}
   }
   /* ---------- controls ---------- */
   .controls{
@@ -166,97 +123,42 @@ html_content = """
     align-items:center;
     gap:10px;
   }
-  .dice-row{
-    display:flex;
-    gap:16px;
-    align-items:center;
-    justify-content:center;
-  }
+  .dice-row{display:flex;gap:16px;align-items:center;justify-content:center;}
   .die{
-    width:58px;
-    height:58px;
-    border-radius:14px;
+    width:58px;height:58px;border-radius:14px;
     background:linear-gradient(160deg,#fffdf8,#e7ded0);
     box-shadow:0 6px 0 #b6ac98, 0 8px 14px rgba(0,0,0,0.4);
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    grid-template-rows:repeat(3,1fr);
-    padding:8px;
-    position:relative;
+    display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+    padding:8px;position:relative;
     transition:transform .15s ease, box-shadow .15s ease;
   }
-  .die.selectable{
-    cursor:pointer;
-    outline:3px solid var(--gold);
-    outline-offset:2px;
-  }
-  .die.used{
-    opacity:0.35;
-    filter:grayscale(0.6);
-  }
-  .die.rolling{
-    animation:roll 0.55s ease;
-  }
+  .die.selectable{cursor:pointer;outline:3px solid var(--gold);outline-offset:2px;}
+  .die.used{opacity:0.35;filter:grayscale(0.6);}
+  .die.rolling{animation:roll 0.55s ease;}
   @keyframes roll{
-    0%{
-      transform:rotate(0deg) scale(1);
-    }
-    30%{
-      transform:rotate(140deg) scale(1.08);
-    }
-    60%{
-      transform:rotate(260deg) scale(0.96);
-    }
-    100%{
-      transform:rotate(360deg) scale(1);
-    }
+    0%{transform:rotate(0deg) scale(1);}
+    30%{transform:rotate(140deg) scale(1.08);}
+    60%{transform:rotate(260deg) scale(0.96);}
+    100%{transform:rotate(360deg) scale(1);}
   }
-  .pip{
-    width:9px;
-    height:9px;
-    border-radius:50%;
-    background:var(--ink);
-    align-self:center;
-    justify-self:center;
-    opacity:0;
-  }
-  .pip.on{
-    opacity:1;
-  }
+  .pip{width:9px;height:9px;border-radius:50%;background:var(--ink);align-self:center;justify-self:center;opacity:0;}
+  .pip.on{opacity:1;}
   .roll-btn{
-    font-family:'Baloo 2';
-    font-weight:700;
-    font-size:16px;
-    padding:12px 30px;
-    border:none;
-    border-radius:30px;
+    font-family:'Baloo 2';font-weight:700;font-size:16px;
+    padding:12px 30px;border:none;border-radius:30px;
     background:linear-gradient(160deg, var(--gold), #c9962f);
     color:#3a2604;
     box-shadow:0 5px 0 #9c7018, 0 8px 16px rgba(0,0,0,0.4);
-    cursor:pointer;
-    transition:transform .1s ease;
+    cursor:pointer;transition:transform .1s ease;
   }
-  .roll-btn:active{
-    transform:translateY(3px);
-    box-shadow:0 2px 0 #9c7018;
-  }
-  .roll-btn:disabled{
-    opacity:0.4;
-    cursor:not-allowed;
-    box-shadow:none;
-    transform:none;
-  }
+  .roll-btn:active{transform:translateY(3px);box-shadow:0 2px 0 #9c7018;}
+  .roll-btn:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none;transform:none;}
   .msg{
-    min-height:20px;
-    font-size:13.5px;
-    font-weight:700;
-    color:var(--gold);
-    text-align:center;
+    min-height:20px;font-size:13.5px;font-weight:700;color:var(--gold);text-align:center;
   }
   /* ---------- log ---------- */
   .log-panel{
-    width:100%;
-    max-width:520px;
+    width:100%;max-width:520px;
     background:rgba(0,0,0,0.25);
     border:1px solid rgba(255,255,255,0.1);
     border-radius:14px;
@@ -266,107 +168,39 @@ html_content = """
     overflow-y:auto;
     color:#cfe8da;
   }
-  .log-panel .title{
-    font-family:'Baloo 2';
-    font-weight:700;
-    color:var(--gold);
-    font-size:12.5px;
-    margin-bottom:4px;
-  }
-  .log-panel div.entry{
-    padding:2px 0;
-    border-bottom:1px dashed rgba(255,255,255,0.06);
-  }
+  .log-panel .title{font-family:'Baloo 2';font-weight:700;color:var(--gold);font-size:12.5px;margin-bottom:4px;}
+  .log-panel div.entry{padding:2px 0;border-bottom:1px dashed rgba(255,255,255,0.06);}
   /* ---------- player legend ---------- */
-  .legend{
-    display:flex;
-    gap:14px;
-    flex-wrap:wrap;
-    justify-content:center;
-    font-size:11px;
-    color:#cfe8da;
-  }
-  .legend span{
-    display:flex;
-    align-items:center;
-    gap:5px;
-  }
-  .legend i{
-    width:11px;
-    height:11px;
-    border-radius:50%;
-    display:inline-block;
-  }
+  .legend{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:11px;color:#cfe8da;}
+  .legend span{display:flex;align-items:center;gap:5px;}
+  .legend i{width:11px;height:11px;border-radius:50%;display:inline-block;}
   /* ---------- win modal ---------- */
   .overlay{
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,0.65);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:50;
-    padding:20px;
+    position:fixed;inset:0;background:rgba(0,0,0,0.65);
+    display:none;align-items:center;justify-content:center;z-index:50;padding:20px;
   }
-  .overlay.show{
-    display:flex;
-  }
+  .overlay.show{display:flex;}
   .modal{
     background:linear-gradient(160deg,#173f2d,#0e2a1f);
-    border:2px solid var(--gold);
-    border-radius:20px;
-    padding:28px 26px;
-    max-width:320px;
-    text-align:center;
+    border:2px solid var(--gold);border-radius:20px;
+    padding:28px 26px;max-width:320px;text-align:center;
     box-shadow:0 20px 50px rgba(0,0,0,0.6);
   }
-  .modal h2{
-    font-family:'Baloo 2';
-    color:var(--gold);
-    margin:0 0 8px;
-    font-size:26px;
-  }
-  .modal p{
-    font-size:13.5px;
-    color:#dff0e6;
-    margin-bottom:18px;
-  }
+  .modal h2{font-family:'Baloo 2';color:var(--gold);margin:0 0 8px;font-size:26px;}
+  .modal p{font-size:13.5px;color:#dff0e6;margin-bottom:18px;}
   .modal button{
-    font-family:'Baloo 2';
-    font-weight:700;
-    padding:10px 26px;
-    border-radius:24px;
-    border:none;
-    background:var(--gold);
-    color:#3a2604;
-    cursor:pointer;
+    font-family:'Baloo 2';font-weight:700;padding:10px 26px;border-radius:24px;border:none;
+    background:var(--gold);color:#3a2604;cursor:pointer;
   }
   .rules-toggle{
-    font-size:12px;
-    color:#a9d3bd;
-    text-decoration:underline;
-    cursor:pointer;
-    background:none;
-    border:none;
+    font-size:12px;color:#a9d3bd;text-decoration:underline;cursor:pointer;background:none;border:none;
   }
   .rules-box{
-    display:none;
-    width:100%;
-    max-width:520px;
-    background:rgba(0,0,0,0.25);
-    border:1px solid rgba(255,255,255,0.1);
-    border-radius:14px;
-    padding:12px 16px;
-    font-size:12px;
-    line-height:1.6;
-    color:#d8ecdf;
+    display:none;width:100%;max-width:520px;background:rgba(0,0,0,0.25);
+    border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px 16px;font-size:12px;line-height:1.6;color:#d8ecdf;
   }
-  .rules-box.show{
-    display:block;
-  }
-  .rules-box b{
-    color:var(--gold);
-  }
+  .rules-box.show{display:block;}
+  .rules-box b{color:var(--gold);}
 </style>
 </head>
 <body>
@@ -578,7 +412,7 @@ function addLog(text){
   renderLog();
 }
 
-// Executes moving `tokenId` of the current player using die value `dieValue`.
+// Executes moving `tokenId` of the current player using die value `dieValue`. 
 function performMove(tokenId, dieValue){
   const player = currentPlayer();
   const token = player.tokens.find(t=>t.id===tokenId);
@@ -756,9 +590,7 @@ function getMovableSet(){
   const player = currentPlayer();
   const dieValue = state.dice[state.selectedDie];
   const canOpenNow = state.diceIsDouble || state.dice.includes(6);
-
-  // Fixed: Use movableTokensForDie to get valid token IDs
-  movableTokensForDie(player, dieValue, canOpenNow).forEach(id => set.add(player.color+':'+id));
+  ids.forEach(id => set.add(player.color+':'+id));
   return set;
 }
 
@@ -828,7 +660,7 @@ function doRoll(){
   document.getElementById('die0').classList.add('rolling');
   document.getElementById('die1').classList.add('rolling');
   setMsg('Rolling…');
-  setTimeout(()=>{
+  setTimeout(()=>{ // Added braces
     document.getElementById('die0').classList.remove('rolling');
     document.getElementById('die1').classList.remove('rolling');
     finishRoll();
