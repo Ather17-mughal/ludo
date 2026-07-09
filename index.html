@@ -1,4 +1,6 @@
+from IPython.display import HTML
 
+html_content = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -183,35 +185,47 @@
   .legend span{display:flex;align-items:center;gap:4px;}
   .legend i{width:10px;height:10px;border-radius:50%;display:inline-block;}
   
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center;z-index:150;padding:15px;}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;z-index:150;padding:15px;}
   .overlay.show{display:flex;}
   .modal{
     background:linear-gradient(160deg,#173f2d,#0e2a1f);
     border:2px solid var(--gold);
     border-radius:20px;
-    padding:24px;
-    max-width:360px;
+    padding:20px;
+    max-width:380px;
     text-align:center;
     box-shadow:0 20px 50px rgba(0,0,0,0.6);
   }
-  .modal h2{font-family:'Baloo 2';color:var(--gold);margin:0 0 12px;font-size:24px;}
-  .rules-list {
-    text-align: left;
-    font-size: 12px;
-    line-height: 1.5;
-    color: #d8ecdf;
-    margin-bottom: 20px;
-    background: rgba(0,0,0,0.2);
+  .modal h2{font-family:'Baloo 2';color:var(--gold);margin:0 0 10px;font-size:24px;}
+  
+  .config-section {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
     padding: 12px;
-    border-radius: 10px;
-    border: 1px solid rgba(255,255,255,0.05);
+    margin-bottom: 12px;
+    text-align: left;
+  }
+  .config-section h3 { font-size:13px; margin:0 0 8px; color:var(--gold); text-transform:uppercase; letter-spacing:0.5px;}
+  .radio-group { display: flex; flex-direction: column; gap: 8px; }
+  .radio-label {
+    display: flex; align-items: center; gap: 10px; font-size: 13px; color: #d8ecdf; cursor: pointer;
+    background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px; border: 1px solid transparent;
+  }
+  .radio-label:hover { background: rgba(255,255,255,0.06); }
+  .radio-label input { accent-color: var(--gold); margin: 0; width:16px; height:16px;}
+  .radio-label.active { border-color: rgba(233,196,106,0.4); background: rgba(233,196,106,0.05); }
+
+  .rules-list {
+    text-align: left; font-size: 11.5px; line-height: 1.45; color: #b7d6c2;
+    background: rgba(0,0,0,0.15); padding: 10px; border-radius: 8px; max-height: 140px; overflow-y: auto;
   }
   .rules-list b { color: var(--gold); }
-  .modal button{
-    font-family:'Baloo 2';font-weight:700;font-size:15px;
-    padding:10px 32px;border-radius:24px;border:none;
-    background:var(--gold);color:#3a2604;cursor:pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  .modal button.enter-btn{
+    font-family:'Baloo 2';font-weight:700;font-size:16px;
+    padding:10px 40px;border-radius:24px;border:none; margin-top:14px;
+    background:linear-gradient(160deg, var(--gold), #c9962f); color:#3a2604;cursor:pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
   }
 </style>
 </head>
@@ -223,7 +237,7 @@
 
   <div class="turn-banner">
     <div class="turn-chip"><span class="swatch" id="turnSwatch"></span><span id="turnName">Turn</span></div>
-    <div class="status-line" id="statusLine">Tap Roll to begin</div>
+    <div class="status-line" id="statusLine">Select Mode & Enter Arena</div>
   </div>
 
   <div class="board-wrap" id="boardWrap">
@@ -250,23 +264,48 @@
 
 <div class="overlay show" id="rulesGateway">
   <div class="modal">
-    <h2>📜 Battle Rules</h2>
-    <div class="rules-list">
-      <b>1. Always Two Dice:</b> Both dice roll together on every single turn.<br><br>
-      <b>2. Any Double = 6 &amp; 6 + Bonus:</b> Pairs (1-1 to 6-6) play as double sixes, unlock yard tokens, and grant an instant bonus roll.<br><br>
-      <b>3. Shared Stacks are Fatal:</b> Landing on an opponent stack kills <i>all</i> tokens sitting there.<br><br>
-      <b>4. Cap on Move Bonuses:</b> Achieving multiple milestones at once (e.g., double kill, or a kill + scoring a home goal simultaneously) awards only <b>one</b> action bonus roll.<br><br>
-      <b>5. Blood Before Home:</b> You cannot enter the home column until you kill an opponent. If all active tokens get sent back to base, clearance is revoked!
+    <h2>📜 Game Configuration</h2>
+    
+    <div class="config-section">
+      <h3>Choose Battlefield Setup</h3>
+      <div class="radio-group">
+        <label class="radio-label active" id="lblLocal">
+          <input type="radio" name="gameMode" value="local" checked>
+          <div>
+            <b>Local Pass &amp; Play</b>
+            <div style="font-size:11px; color:#a2bfae;">All 4 players controlled manually on this device.</div>
+          </div>
+        </label>
+        <label class="radio-label" id="lblBotSolo">
+          <input type="radio" name="gameMode" value="botsSolo">
+          <div>
+            <b>Play with Bots (Free-for-All)</b>
+            <div style="font-size:11px; color:#a2bfae;">You control Red. Green, Yellow, and Blue are cutthroat bots.</div>
+          </div>
+        </label>
+        <label class="radio-label" id="lblBotTeam">
+          <input type="radio" name="gameMode" value="botsTeam">
+          <div>
+            <b>Play with Bots (2 vs 2 Team)</b>
+            <div style="font-size:11px; color:#a2bfae;">Red (You) &amp; Yellow (Bot) vs Green &amp; Blue (Bots). No friendly fire!</div>
+          </div>
+        </label>
+      </div>
     </div>
-    <button id="enterGameBtn">ENTER ARENA</button>
+
+    <div class="rules-list">
+      <b>💡 Core Combat Rules:</b> One move cap bonus for goals/kills. Double values change instantly to double sixes. <br>
+      <b>👥 Team dynamic:</b> In 2 vs 2, teammates cannot kill each other. If your teammate finishes all tokens, landing at least one <b>6</b> on your dice chain allows you to manually move your partner's pieces using your roll!
+    </div>
+    <button class="enter-btn" id="enterGameBtn">ENTER ARENA</button>
   </div>
 </div>
 
 <div class="overlay" id="victoryOverlay">
   <div class="modal">
     <h2 id="winTitle">🎉 Red Wins!</h2>
-    <p style="font-size:13px; color:#dff0e6; margin-bottom:16px;">All four tokens made it home safely.</p>
-    <button id="playAgainBtn">Play Again</button>
+    <p id="winSub" style="font-size:13px; color:#dff0e6; margin-bottom:16px;">All target criteria met.</p>
+    <button id="playAgainBtn" class="enter-btn" style="margin-top:0;">Play Again</button>
   </div>
 </div>
 
@@ -310,16 +349,24 @@ function yardSlot(color, idx){
 const HEXSOLID = { red:'#e8483a', green:'#2fae66', yellow:'#f2ab27', blue:'#3a7de8' };
 
 let state = null;
-function freshState(){
+
+function freshState(modeChoice){
   return {
-    players: COLORS.map(color => ({
-      color,
-      tokens: [0,1,2,3].map(i => ({ id:i, state:'yard', pos:-1 })),
-      hasKilled: false,
-      hasRolledBefore: false,
-      firstTurnBonusAvailable: true,
-      finished: false
-    })),
+    mode: modeChoice, // 'local', 'botsSolo', 'botsTeam'
+    players: COLORS.map(color => {
+      let isBot = false;
+      if(modeChoice === 'botsSolo' && color !== 'red') isBot = true;
+      if(modeChoice === 'botsTeam' && color !== 'red') isBot = true; // yellow is partner bot
+      return {
+        color,
+        isBot,
+        tokens: [0,1,2,3].map(i => ({ id:i, state:'yard', pos:-1 })),
+        hasKilled: false,
+        hasRolledBefore: false,
+        firstTurnBonusAvailable: true,
+        finished: false
+      };
+    }),
     currentPlayerIndex: 0,
     dice: [1,1],
     diceIsDouble: false,
@@ -345,6 +392,12 @@ function occupantsAtAbs(absIdx, excludeColor){
   const groups = [];
   for(const p of state.players){
     if(p.color===excludeColor) continue;
+    // Team mode exception: Red and Yellow do not conflict/occupy to fight
+    if(state.mode === 'botsTeam') {
+      if((excludeColor === 'red' && p.color === 'yellow') || (excludeColor === 'yellow' && p.color === 'red')) {
+        continue;
+      }
+    }
     const ids = p.tokens.filter(t=> t.state==='path' && absIndexFor(p.color,t.pos)===absIdx).map(t=>t.id);
     if(ids.length) groups.push({color:p.color, ids});
   }
@@ -362,20 +415,28 @@ function canTokenUseDie(player, token, dieValue, canOpenNow){
   return true;
 }
 
-function getLegalDiceIndicesForToken(player, token) {
+function getLegalDiceIndicesForToken(player, token, explicitDiceUsed) {
   const indices = [];
+  const targetUsed = explicitDiceUsed || state.diceUsed;
   const canOpenNow = state.diceIsDouble || state.dice.includes(6);
   [0, 1].forEach(idx => {
-    if (!state.diceUsed[idx] && canTokenUseDie(player, token, state.dice[idx], canOpenNow)) {
+    if (!targetUsed[idx] && canTokenUseDie(player, token, state.dice[idx], canOpenNow)) {
       indices.push(idx);
     }
   });
   return indices;
 }
 
-function performMove(tokenId, dieIdx){
-  const player = currentPlayer();
-  const token = player.tokens.find(t=>t.id===tokenId);
+// Check if Red has at least one 6 unspent to proxy yellow
+function currentRollHasSix() {
+  return [0,1].some(idx => !state.diceUsed[idx] && state.dice[idx] === 6);
+}
+
+function performMove(colorContext, tokenId, dieIdx){
+  const mainPlayer = currentPlayer();
+  // Target player can either be the active main player, or your finished partner in team mode
+  const movingPlayer = state.players.find(p => p.color === colorContext);
+  const token = movingPlayer.tokens.find(t=>t.id===tokenId);
   const dieValue = state.dice[dieIdx];
   let killedThisMove = false;
   let completedThisMove = false;
@@ -391,9 +452,9 @@ function performMove(tokenId, dieIdx){
   }
 
   if(token.pos>=0 && token.pos<=50){
-    const absIdx = absIndexFor(player.color, token.pos);
+    const absIdx = absIndexFor(movingPlayer.color, token.pos);
     if(!isSafeAbs(absIdx)){
-      const groups = occupantsAtAbs(absIdx, player.color);
+      const groups = occupantsAtAbs(absIdx, movingPlayer.color);
       for(const g of groups){
         const enemy = state.players.find(p=>p.color===g.color);
         g.ids.forEach(eid => {
@@ -404,27 +465,29 @@ function performMove(tokenId, dieIdx){
         
         const activeTokens = enemy.tokens.filter(t => t.state !== 'done');
         if(activeTokens.length > 0 && activeTokens.every(t => t.state === 'yard')){
-          if(enemy.hasKilled){
-            enemy.hasKilled = false;
-          }
+          if(enemy.hasKilled) enemy.hasKilled = false;
         }
       }
     }
   }
 
-  // Adjusted Logic: If they killed or scored home, add exactly 1 bonus roll max for this turn segment
   if(killedThisMove){
-    player.hasKilled = true;
+    movingPlayer.hasKilled = true;
+    if(state.mode === 'botsTeam' && movingPlayer.color === 'yellow') {
+       // if your companion got the kill, clear status for team visibility
+       state.players.find(p => p.color === 'red').hasKilled = true;
+    }
+    if(state.mode === 'botsTeam' && movingPlayer.color === 'red') {
+       state.players.find(p => p.color === 'yellow').hasKilled = true;
+    }
   }
   
   if(killedThisMove || completedThisMove){
     state.extraRolls = 1; 
   }
 
-  if(player.tokens.every(t=>t.state==='done')){
-    player.finished = true;
-    state.winner = player.color;
-  }
+  // Check victory logic conditions based on mode
+  checkGameEndConditions();
 
   document.getElementById('popoverContainer').innerHTML = '';
 
@@ -438,14 +501,98 @@ function performMove(tokenId, dieIdx){
   if(unusedIndices.length === 0) {
     setTimeout(()=>resolveTurnSegment(), 350);
   } else {
-    const canStillMove = player.tokens.some(t => getLegalDiceIndicesForToken(player, t).length > 0);
-    if(!canStillMove) {
+    // Evaluation check for any further legal moves (including potential teammate moves if Red rolled a 6)
+    if(!hasAnyLegalMoveLeft(mainPlayer)) {
       setTimeout(()=>resolveTurnSegment(), 350);
     } else {
-      setMsg('Select another token to move.');
+      setMsg('Select another token to continue.');
       renderAll();
     }
   }
+}
+
+function checkGameEndConditions() {
+  if(state.mode === 'botsTeam') {
+    const redDone = state.players.find(p=>p.color==='red').tokens.every(t=>t.state==='done');
+    const yellowDone = state.players.find(p=>p.color==='yellow').tokens.every(t=>t.state==='done');
+    const greenDone = state.players.find(p=>p.color==='green').tokens.every(t=>t.state==='done');
+    const blueDone = state.players.find(p=>p.color==='blue').tokens.every(t=>t.state==='done');
+
+    if(redDone && yellowDone) state.winner = 'Red & Yellow Team';
+    else if(greenDone && blueDone) state.winner = 'Green & Blue Team';
+  } else {
+    for(const p of state.players) {
+      if(p.tokens.every(t=>t.state==='done')){
+        p.finished = true;
+        state.winner = p.color;
+        break;
+      }
+    }
+  }
+}
+
+function hasAnyLegalMoveLeft(player) {
+  // Can current player move their own pieces?
+  let selfCanMove = player.tokens.some(t => getLegalDiceIndicesForToken(player, t).length > 0);
+  if(selfCanMove) return true;
+
+  // Partner control condition check
+  if(state.mode === 'botsTeam' && player.color === 'red' && currentRollHasSix()) {
+    const partner = state.players.find(p => p.color === 'yellow');
+    if(partner.tokens.every(t => t.state === 'done')) {
+       // Partner finished, red can use remaining dice to control partner? No, partner is finished.
+       // But if partner is finished, red can move partner's pieces? Wait, rule says: "if he reached all his token or you... you can play his role"
+       // This implies if Yellow is finished, Red plays Yellow's role? No, if Yellow is finished, Red moves Red pieces. 
+       // If Red is finished, Red plays Yellow's role with Red's dice after landing a 6!
+    }
+    // Let's check if Yellow needs help or Red needs help
+    if(state.players.find(p=>p.color==='red').tokens.every(t=>t.state==='done')) {
+       const yCanMove = partner.tokens.some(t => getLegalDiceIndicesForToken(partner, t).length > 0);
+       if(yCanMove) return true;
+    }
+    if(state.players.find(p=>p.color==='yellow').tokens.every(t=>t.state==='done')) {
+       const rCanMove = state.players.find(p=>p.color==='red').tokens.some(t => getLegalDiceIndicesForToken(state.players.find(p=>p.color==='red'), t).length > 0);
+       if(rCanMove) return true;
+    }
+  }
+  return false;
+}
+
+/* ---------------------- BOT ENGINE AI ---------------------- */
+function executeBotTurn() {
+  if (state.phase !== 'moving' || !currentPlayer().isBot) return;
+  
+  const bot = currentPlayer();
+  
+  // Collect all valid choices for available dice
+  let choices = [];
+  [0, 1].forEach(dieIdx => {
+    if(!state.diceUsed[dieIdx]) {
+      bot.tokens.forEach(t => {
+        const legalIndices = getLegalDiceIndicesForToken(bot, t);
+        if(legalIndices.includes(dieIdx)) {
+          choices.push({ token: t, dieIdx: dieIdx });
+        }
+      });
+    }
+  });
+
+  if(choices.length === 0) {
+    // No choices left for bot
+    setTimeout(()=>resolveTurnSegment(), 400);
+    return;
+  }
+
+  // Prioritize aggressive captures, then getting out of home base, then advancing furthest pieces
+  choices.sort((a, b) => {
+    if(a.token.state === 'yard' && b.token.state !== 'yard') return -1;
+    return b.token.pos - a.token.pos; 
+  });
+
+  const choice = choices[0];
+  setTimeout(() => {
+    performMove(bot.color, choice.token.id, choice.dieIdx);
+  }, 600);
 }
 
 /* ---------------------- RENDERER ---------------------- */
@@ -537,7 +684,7 @@ function tokenPixelPos(color, token){
 function renderTokens(){
   const layer = document.getElementById('tokenLayer');
   layer.innerHTML = '';
-  const player = currentPlayer();
+  const activeMainPlayer = currentPlayer();
 
   for(const p of state.players){
     const byCell = {};
@@ -554,7 +701,24 @@ function renderTokens(){
           cx += off; cy += off*0.3;
         }
         
-        const legalDiceIdx = (state.phase === 'moving' && p.color === player.color) ? getLegalDiceIndicesForToken(player, t) : [];
+        // Figure out if this specific token can currently interact / glow for manual input
+        let legalDiceIdx = [];
+        let contextColor = p.color;
+
+        if (state.phase === 'moving' && !activeMainPlayer.isBot) {
+          if (p.color === activeMainPlayer.color) {
+            legalDiceIdx = getLegalDiceIndicesForToken(activeMainPlayer, t);
+          } 
+          // Team Proxy Action Rule implementation: Red can control Yellow if criteria matched
+          else if (state.mode === 'botsTeam' && activeMainPlayer.color === 'red' && p.color === 'yellow' && currentRollHasSix()) {
+            const redFinished = state.players.find(pl=>pl.color==='red').tokens.every(tk=>tk.state==='done');
+            const yellowFinished = state.players.find(pl=>pl.color==='yellow').tokens.every(tk=>tk.state==='done');
+            if(redFinished || yellowFinished) {
+              legalDiceIdx = getLegalDiceIndicesForToken(p, t);
+            }
+          }
+        }
+
         const isMovable = legalDiceIdx.length > 0;
 
         const g = el('g',{class:'token'+(isMovable?' movable':''), 'data-color':p.color, 'data-id':t.id});
@@ -564,7 +728,7 @@ function renderTokens(){
           g.appendChild(el('circle',{cx,cy,r:14,fill:'none',stroke:'#ffffff','stroke-width':1.4,'stroke-dasharray':'2 2'}));
         }
         if(isMovable){
-          g.addEventListener('click', (e)=>onTokenClick(p.color, t.id, cx, cy, legalDiceIdx, t.state));
+          g.addEventListener('click', (e)=>onTokenClick(contextColor, t.id, cx, cy, legalDiceIdx, t.state));
         }
         layer.appendChild(g);
       });
@@ -572,19 +736,19 @@ function renderTokens(){
   }
 }
 
-function onTokenClick(color, tokenId, cx, cy, legalDiceIdx, tokenState){
-  if(state.phase !== 'moving' || color !== currentPlayer().color) return;
+function onTokenClick(colorContext, tokenId, cx, cy, legalDiceIdx, tokenState){
+  if(state.phase !== 'moving' || currentPlayer().isBot) return;
   
   if (tokenState === 'yard') {
     const openIdx = legalDiceIdx.find(idx => state.dice[idx] === 6 || state.diceIsDouble);
     if (openIdx !== undefined) {
-      performMove(tokenId, openIdx);
+      performMove(colorContext, tokenId, openIdx);
       return;
     }
   }
 
   if(legalDiceIdx.length === 1) {
-    performMove(tokenId, legalDiceIdx[0]);
+    performMove(colorContext, tokenId, legalDiceIdx[0]);
     return;
   }
 
@@ -610,7 +774,7 @@ function onTokenClick(color, tokenId, cx, cy, legalDiceIdx, tokenState){
   });
 
   if(uniqueIndices.length === 1) {
-     performMove(tokenId, uniqueIndices[0]);
+     performMove(colorContext, tokenId, uniqueIndices[0]);
      return;
   }
 
@@ -620,7 +784,7 @@ function onTokenClick(color, tokenId, cx, cy, legalDiceIdx, tokenState){
     btn.textContent = state.dice[idx];
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      performMove(tokenId, idx);
+      performMove(colorContext, tokenId, idx);
     });
     popover.appendChild(btn);
   });
@@ -651,8 +815,12 @@ function renderBanner(){
   COLORS.forEach(color => boardWrap.classList.remove(`${color}-turn`));
   boardWrap.classList.add(`${p.color}-turn`);
   document.getElementById('turnSwatch').style.background = HEXSOLID[p.color];
+  
+  const nameLabel = document.getElementById('turnName');
+  nameLabel.textContent = cap(p.color) + (p.isBot ? ' (Bot)' : ' (You)');
+
   const status = document.getElementById('statusLine');
-  status.textContent = p.hasKilled ? 'Cleared to come home ✔' : 'Needs a kill before entering home';
+  status.textContent = p.hasKilled ? 'Home Entry Unlocked ✔' : 'Needs kill to lock home entry';
 
   COLORS.forEach(color => {
     const glowEl = document.getElementById(`yardGlow-${color}`);
@@ -671,14 +839,20 @@ function renderAll(){
   renderTokens();
   renderDice();
   renderBanner();
-  document.getElementById('rollBtn').disabled = (state.phase!=='idle');
+  
+  const rollBtn = document.getElementById('rollBtn');
+  if(state.phase === 'idle' && !currentPlayer().isBot) {
+    rollBtn.disabled = false;
+  } else {
+    rollBtn.disabled = true;
+  }
 }
 
-/* ---------------------- TURN STATE MACHINE ---------------------- */
+/* ---------------------- TURN MACHINE ---------------------- */
 function setMsg(text){ document.getElementById('msg').textContent = text || '\u00A0'; }
 
 function onRollClick(){
-  if(state.phase!=='idle') return;
+  if(state.phase!=='idle' || currentPlayer().isBot) return;
   document.getElementById('popoverContainer').innerHTML = '';
   doRoll();
 }
@@ -719,66 +893,99 @@ function finishRoll(){
   player.hasRolledBefore = true;
   renderDice();
 
-  const anyMove = player.tokens.some(t => getLegalDiceIndicesForToken(player, t).length > 0);
-  if(!anyMove){
-    setMsg('No legal move — turn passes.');
-    state.phase='moving';
-    setTimeout(()=>resolveTurnSegment(), 700);
+  state.phase='moving';
+
+  const validOptionsAvailable = hasAnyLegalMoveLeft(player);
+  if(!validOptionsAvailable){
+    setMsg('No legal move available — passing turn.');
+    setTimeout(()=>resolveTurnSegment(), 800);
     return;
   }
 
-  state.phase='moving';
-  setMsg('Tap a pulsing token to choose its move!');
-  renderAll();
+  if(!player.isBot) {
+    setMsg('Your move! Select a pulsing token asset.');
+    renderAll();
+  } else {
+    setMsg('Bot analyzing optimal lane...');
+    renderAll();
+    executeBotTurn();
+  }
 }
 
 function resolveTurnSegment(){
-  const player = currentPlayer();
   if(state.diceIsDouble){
     state.extraRolls = 1; 
   }
   if(state.extraRolls>0){
     state.extraRolls -= 1;
     state.phase='idle';
-    setMsg('Bonus roll — go again!');
+    setMsg('Bonus roll activated!');
     renderAll();
+    if(currentPlayer().isBot) {
+      setTimeout(()=> { if(state.phase==='idle') doRoll(); }, 600);
+    }
     return;
   }
   advanceTurn();
 }
 
 function advanceTurn(){
-  const alive = activePlayers();
-  if(alive.length<=1){
-    state.phase='gameover';
+  checkGameEndConditions();
+  if(state.winner){
+    showWin();
     return;
   }
+  
   let idx = state.currentPlayerIndex;
+  let counter = 0;
   do{
     idx = (idx+1) % state.players.length;
-  } while(state.players[idx].finished);
+    counter++;
+  } while(state.players[idx].finished && counter < 5);
+  
   state.currentPlayerIndex = idx;
   state.phase='idle';
   setMsg('\u00A0');
   renderAll();
+
+  // Trigger loop safely if target player is bot context
+  if(currentPlayer().isBot) {
+    setTimeout(() => {
+      if(state.phase === 'idle') doRoll();
+    }, 600);
+  }
 }
 
 function showWin(){
-  document.getElementById('winTitle').textContent = `🎉 ${cap(state.winner)} Wins!`;
+  document.getElementById('winTitle').textContent = `🎉 Arena Cleared!`;
+  document.getElementById('winSub').textContent = `${state.winner} secured absolute victory.`;
   document.getElementById('victoryOverlay').classList.add('show');
 }
 
-function init(){
-  state = freshState();
+function init(selectedMode){
+  state = freshState(selectedMode);
   buildStaticBoard();
   renderAll();
-  setMsg('Tap Roll to begin');
+  setMsg(currentPlayer().isBot ? 'Bot rolling...' : 'Your turn to strike!');
+  
+  if(currentPlayer().isBot) {
+    setTimeout(() => doRoll(), 600);
+  }
 }
 
+/* ---------------------- CONFIG LOBBY INTERFACES ---------------------- */
+const labels = [document.getElementById('lblLocal'), document.getElementById('lblBotSolo'), document.getElementById('lblBotTeam')];
+labels.forEach(lbl => {
+  lbl.addEventListener('click', () => {
+    labels.forEach(l => l.classList.remove('active'));
+    lbl.classList.add('active');
+  });
+});
+
 document.getElementById('enterGameBtn').addEventListener('click', () => {
+  const selectedMode = document.querySelector('input[name="gameMode"]:checked').value;
   document.getElementById('rulesGateway').classList.remove('show');
-  document.getElementById('rollBtn').disabled = false;
-  init();
+  init(selectedMode);
 });
 
 document.getElementById('rollBtn').addEventListener('click', onRollClick);
@@ -795,3 +1002,6 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
+"""
+
+display(HTML(html_content))
