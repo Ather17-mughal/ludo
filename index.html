@@ -100,7 +100,7 @@ Anther
   .board-wrap.blue-turn { box-shadow:0 0 10px 4px var(--blue), 0 8px 24px rgba(0,0,0,0.45); }
   svg#board{width:100%;height:100%;display:block;border-radius:8px;overflow:visible;}
   
-  .token{cursor:pointer;transition:transform .18s ease;}
+  .token{cursor:pointer;transition:transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), fill 0.2s;}
   .token.movable{animation:pulse 1s ease-in-out infinite;}
   @keyframes pulse{
     0%,100%{filter:drop-shadow(0 0 0px rgba(255,255,255,0));}
@@ -229,6 +229,8 @@ Anther
 </head>
 <body>
 
+<audio id="stepAudio" src="http://googleusercontent.com/file_content/0" preload="auto"></audio>
+
 <div class="app">
   <h1>🎲 Ludo — Double Trouble</h1>
   <div class="subtitle">Where double means trouble, and mercy runs thin.</div>
@@ -347,6 +349,15 @@ function yardSlot(color, idx){
 const HEXSOLID = { red:'#e8483a', green:'#2fae66', yellow:'#f2ab27', blue:'#3a7de8' };
 
 let state = null;
+let isAnimatingMove = false; // State flag to shield interactive race loops during async marching
+
+function playStepSound() {
+  const audio = document.getElementById('stepAudio');
+  if (audio) {
+    audio.currentTime = 0;
+    audio.play().catch(e => console.log("Audio play blocked/interrupted:", e));
+  }
+}
 
 function freshState(modeChoice){
   return {
@@ -413,6 +424,7 @@ function canTokenUseDie(player, token, dieValue, canOpenNow){
 }
 
 function getLegalDiceIndicesForToken(player, token) {
+  if (isAnimatingMove) return []; // Block evaluation highlights during active single step march iterations
   const indices = [];
   const canOpenNow = state.diceIsDouble || state.dice.includes(6);
   [0, 1].forEach(idx => {
@@ -427,7 +439,13 @@ function currentRollHasSix() {
   return [0,1].some(idx => !state.diceUsed[idx] && state.dice[idx] === 6);
 }
 
-function performMove(colorContext, tokenId, dieIdx){
+// Helper utility for sequential stepping pauses
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function performMove(colorContext, tokenId, dieIdx){
+  if (isAnimatingMove) return;
+  isAnimatingMove = true;
+  
   const mainPlayer = currentPlayer();
   const movingPlayer = state.players.find(p => p.color === colorContext);
   const token = movingPlayer.tokens.find(t=>t.id===tokenId);
@@ -436,15 +454,32 @@ function performMove(colorContext, tokenId, dieIdx){
   let completedThisMove = false;
 
   state.diceUsed[dieIdx] = true;
+  document.getElementById('popoverContainer').innerHTML = '';
 
+  // Step 1: Open token from base yard to index 0 track lane entry cell
   if(token.state==='yard'){
-    token.state='path'; token.pos=0;
+    token.state='path'; 
+    token.pos=0;
+    playStepSound();
+    renderAll();
+    await sleep(320); // Smooth incremental visual cadence
   } else {
-    token.pos += dieValue;
-    if(token.pos>=51 && token.pos<=56){ token.state='home'; }
-    if(token.pos===57){ token.state='done'; completedThisMove=true; }
+    // Step 2: Sequential step-by-step march looping index progression tracks
+    const targetPos = token.pos + dieValue;
+    while(token.pos < targetPos) {
+      token.pos += 1;
+      
+      // Dynamic route classification bounds validation
+      if(token.pos>=51 && token.pos<=56){ token.state='home'; }
+      if(token.pos===57){ token.state='done'; completedThisMove=true; }
+      
+      playStepSound();
+      renderAll();
+      await sleep(320); // 320ms paced stepping cadence
+    }
   }
 
+  // Final lane settlement checks (Kills, Goals & Captures)
   if(token.pos>=0 && token.pos<=50){
     const absIdx = absIndexFor(movingPlayer.color, token.pos);
     if(!isSafeAbs(absIdx)){
@@ -480,7 +515,7 @@ function performMove(colorContext, tokenId, dieIdx){
   }
 
   checkGameEndConditions();
-  document.getElementById('popoverContainer').innerHTML = '';
+  isAnimatingMove = false;
 
   if(state.winner){
     renderAll();
@@ -544,12 +579,11 @@ function hasAnyLegalMoveLeft(player) {
 
 /* ---------------------- BOT ENGINE AI ---------------------- */
 function executeBotTurn() {
-  if (state.phase !== 'moving' || !currentPlayer().isBot) return;
+  if (state.phase !== 'moving' || !currentPlayer().isBot || isAnimatingMove) return;
   
   const bot = currentPlayer();
   let choices = [];
   
-  // Scans all remaining unspent indices dynamically
   [0, 1].forEach(dieIdx => {
     if(!state.diceUsed[dieIdx]) {
       bot.tokens.forEach(t => {
@@ -566,7 +600,6 @@ function executeBotTurn() {
     return;
   }
 
-  // Weight layout priority logic
   choices.sort((a, b) => {
     if(a.token.state === 'yard' && b.token.state !== 'yard') return -1;
     return b.token.pos - a.token.pos; 
@@ -685,7 +718,7 @@ function renderTokens(){
         let legalDiceIdx = [];
         let contextColor = p.color;
 
-        if (state.phase === 'moving' && !activeMainPlayer.isBot) {
+        if (state.phase === 'moving' && !activeMainPlayer.isBot && !isAnimatingMove) {
           if (p.color === activeMainPlayer.color) {
             legalDiceIdx = getLegalDiceIndicesForToken(activeMainPlayer, t);
           } 
@@ -700,13 +733,13 @@ function renderTokens(){
 
         const isMovable = legalDiceIdx.length > 0;
 
-        const g = el('g',{class:'token'+(isMovable?' movable':''), 'data-color':p.color, 'data-id':t.id});
-        g.appendChild(el('circle',{cx,cy,r:11,fill:HEXSOLID[p.color],stroke:'#3a2604','stroke-width':2}));
-        g.appendChild(el('circle',{cx:cx-3,cy:cy-3,r:3.2,fill:'rgba(255,255,255,0.55)'}));
+        const g = el('g',{class:'token'+(isMovable?' movable':''), 'style':`transform: translate(${cx}px, ${cy}px);`, 'data-color':p.color, 'data-id':t.id});
+        g.appendChild(el('circle',{cx:0,cy:0,r:11,fill:HEXSOLID[p.color],stroke:'#3a2604','stroke-width':2}));
+        g.appendChild(el('circle',{cx:-3,cy:-3,r:3.2,fill:'rgba(255,255,255,0.55)'}));
         if(t.state==='done'){
-          g.appendChild(el('circle',{cx,cy,r:14,fill:'none',stroke:'#ffffff','stroke-width':1.4,'stroke-dasharray':'2 2'}));
+          g.appendChild(el('circle',{cx:0,cy:0,r:14,fill:'none',stroke:'#ffffff','stroke-width':1.4,'stroke-dasharray':'2 2'}));
         }
-        if(isMovable){
+        if(isMovable && !isAnimatingMove){
           g.addEventListener('click', (e)=>onTokenClick(contextColor, t.id, cx, cy, legalDiceIdx, t.state));
         }
         layer.appendChild(g);
@@ -716,7 +749,7 @@ function renderTokens(){
 }
 
 function onTokenClick(colorContext, tokenId, cx, cy, legalDiceIdx, tokenState){
-  if(state.phase !== 'moving' || currentPlayer().isBot) return;
+  if(state.phase !== 'moving' || currentPlayer().isBot || isAnimatingMove) return;
   
   if (tokenState === 'yard') {
     const openIdx = legalDiceIdx.find(idx => state.dice[idx] === 6 || state.diceIsDouble);
@@ -980,4 +1013,3 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
-
