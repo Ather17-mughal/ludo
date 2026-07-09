@@ -1,4 +1,6 @@
+from IPython.display import HTML
 
+html_content = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -109,6 +111,35 @@
     0%,100%{filter:drop-shadow(0 0 0px rgba(255,255,255,0));}
     50%{filter:drop-shadow(0 0 6px rgba(255,255,255,0.9));}
   }
+
+  /* ---------- Neon Yard Glow & Border Animations ---------- */
+  .yard-glow-rect {
+    transition: fill 0.4s ease, opacity 0.4s ease;
+  }
+  .active-yard-glow {
+    opacity: 0.25 !important;
+    animation: neonPulse 2s infinite alternate;
+  }
+  @keyframes neonPulse {
+    0% { filter: drop-shadow(0 0 2px cubic-bezier(0.4, 0, 0.2, 1)); }
+    100% { filter: drop-shadow(0 0 12px cubic-bezier(0.4, 0, 0.2, 1)); }
+  }
+
+  .yard-border-laser {
+    stroke-dasharray: 120 400;
+    stroke-dashoffset: 520;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .active-yard-laser {
+    opacity: 1;
+    animation: laserChaser 2.5s linear infinite;
+  }
+  @keyframes laserChaser {
+    from { stroke-dashoffset: 520; }
+    to { stroke-dashoffset: 0; }
+  }
+
   /* ---------- context selector popover ---------- */
   .die-popover {
     position: absolute;
@@ -294,10 +325,11 @@ const HOME_COLUMN = {
 };
 const CENTER = [7,7];
 const SAFE_ABS = [0,8,13,21,26,34,39,47];
-const YARD_ORIGIN = { red:[1,1], green:[9.6,1], yellow:[9.6,9.6], blue:[1,9.6] };
+const YARD_ORIGIN = { red:[0,0], green:[9*CELL,0], yellow:[9*CELL,9*CELL], blue:[0,9*CELL] };
+const YARD_SLOT_ORIGIN = { red:[1,1], green:[9.6,1], yellow:[9.6,9.6], blue:[1,9.6] };
 
 function yardSlot(color, idx){
-  const [ox,oy] = YARD_ORIGIN[color];
+  const [ox,oy] = YARD_SLOT_ORIGIN[color];
   const dx = idx % 2, dy = Math.floor(idx/2);
   return [ox + dx*2.4 + 1.2, oy + dy*2.4 + 1.2];
 }
@@ -472,13 +504,38 @@ function buildStaticBoard(){
   svg.innerHTML = '';
   svg.appendChild(el('rect',{x:0,y:0,width:600,height:600,fill:'#eee3c8',rx:6}));
 
-  const bases = { red:[0,0], green:[9*CELL,0], yellow:[9*CELL,9*CELL], blue:[0,9*CELL] };
+  // Render player bases & add separate unique neon overlay tags
   for(const c of COLORS){
-    const [x,y] = bases[c];
-    svg.appendChild(el('rect',{x,y,width:6*CELL,height:6*CELL,fill:HEXSOLID[c],rx:18,opacity:0.28}));
+    const [x,y] = YARD_ORIGIN[c];
+    
+    // Core color fill background
+    svg.appendChild(el('rect',{
+      id:`yardGlow-${c}`,
+      class:'yard-glow-rect',
+      x, y, width:6*CELL, height:6*CELL,
+      fill:HEXSOLID[c], rx:18, opacity:0.28
+    }));
+    
+    // White interior board design cutout
     svg.appendChild(el('rect',{x:x+16,y:y+16,width:6*CELL-32,height:6*CELL-32,fill:'#fbf6e8',rx:16}));
+
+    // REQUIREMENT: Laser line track tracing precisely around the outer parameter border of the house
+    // An animated closed layout loop of 240px x 240px square path starting from top-left radius curve context
+    const borderPathString = `M ${x+18} ${y} L ${x+6*CELL-18} ${y} A 18 18 0 0 1 ${x+6*CELL} ${y+18} L ${x+6*CELL} ${y+6*CELL-18} A 18 18 0 0 1 ${x+6*CELL-18} ${y+6*CELL} L ${x+18} ${y+6*CELL} A 18 18 0 0 1 ${x} ${y+6*CELL-18} L ${x} ${y+18} A 18 18 0 0 1 ${x+18} ${y} Z`;
+    
+    svg.appendChild(el('path', {
+      id: `yardLaser-${c}`,
+      class: 'yard-border-laser',
+      d: borderPathString,
+      fill: 'none',
+      stroke: HEXSOLID[c],
+      'stroke-width': '4',
+      'stroke-linecap': 'round',
+      filter: `drop-shadow(0 0 5px ${HEXSOLID[c]})`
+    }));
   }
 
+  // Draw shared cells track path
   for(let i=0;i<52;i++){
     const [r,cIdx] = PATH[i];
     const rect = el('rect',{x:cIdx*CELL,y:r*CELL,width:CELL,height:CELL,fill:'#fbf6e8',stroke:'#cfc4a0','stroke-width':1});
@@ -488,6 +545,8 @@ function buildStaticBoard(){
     }
     for(const c of COLORS){ if(START_OFFSET[c]===i) rect.setAttribute('fill', hexAlpha(HEXSOLID[c],0.55)); }
   }
+  
+  // Home final straight pathway cells
   for(const c of COLORS){
     HOME_COLUMN[c].forEach(([r,cIdx])=>{
       svg.appendChild(el('rect',{x:cIdx*CELL,y:r*CELL,width:CELL,height:CELL,fill:HEXSOLID[c],opacity:0.55,stroke:'#cfc4a0','stroke-width':1}));
@@ -568,10 +627,7 @@ function renderTokens(){
 function onTokenClick(color, tokenId, cx, cy, legalDiceIdx, tokenState){
   if(state.phase !== 'moving' || color !== currentPlayer().color) return;
   
-  // REQUIREMENT FIX: If the token is inside the home yard, do NOT show options or popovers.
-  // It instantly uses whatever die index gives it the open capability (typically the 6).
   if (tokenState === 'yard') {
-    // Under custom rules, doubles act as double 6s. Find the first usable option.
     const openIdx = legalDiceIdx.find(idx => state.dice[idx] === 6 || state.diceIsDouble);
     if (openIdx !== undefined) {
       performMove(tokenId, openIdx);
@@ -654,6 +710,19 @@ function renderBanner(){
   document.getElementById('turnSwatch').style.background = HEXSOLID[p.color];
   const status = document.getElementById('statusLine');
   status.textContent = p.hasKilled ? 'Cleared to come home ✔' : 'Needs a kill before entering home';
+
+  // REQUIREMENT: Update House Laser Border & Neon illumination glow matching current player context
+  COLORS.forEach(color => {
+    const glowEl = document.getElementById(`yardGlow-${color}`);
+    const laserEl = document.getElementById(`yardLaser-${color}`);
+    if(color === p.color) {
+      if(glowEl) glowEl.classList.add('active-yard-glow');
+      if(laserEl) laserEl.classList.add('active-yard-laser');
+    } else {
+      if(glowEl) glowEl.classList.remove('active-yard-glow');
+      if(laserEl) laserEl.classList.remove('active-yard-laser');
+    }
+  });
 }
 
 function renderAll(){
@@ -791,3 +860,6 @@ init();
 </script>
 </body>
 </html>
+"""
+
+display(HTML(html_content))
