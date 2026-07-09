@@ -1,4 +1,6 @@
-Anther
+from IPython.display import HTML
+
+html_content = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -349,13 +351,18 @@ function yardSlot(color, idx){
 const HEXSOLID = { red:'#e8483a', green:'#2fae66', yellow:'#f2ab27', blue:'#3a7de8' };
 
 let state = null;
-let isAnimatingMove = false; // State flag to shield interactive race loops during async marching
+let isAnimatingMove = false; 
 
+// Multi-channel trigger mechanism ensures step overlap sounds never cut out
 function playStepSound() {
-  const audio = document.getElementById('stepAudio');
-  if (audio) {
-    audio.currentTime = 0;
-    audio.play().catch(e => console.log("Audio play blocked/interrupted:", e));
+  const audioNode = document.getElementById('stepAudio');
+  if (audioNode) {
+    const clone = audioNode.cloneNode(true);
+    clone.volume = 1.0;
+    clone.play().then(() => {
+      // Cleanup DOM node allocations once completed
+      clone.addEventListener('ended', () => clone.remove());
+    }).catch(e => console.log("Audio play deferred or interacting window focus needed:", e));
   }
 }
 
@@ -424,7 +431,7 @@ function canTokenUseDie(player, token, dieValue, canOpenNow){
 }
 
 function getLegalDiceIndicesForToken(player, token) {
-  if (isAnimatingMove) return []; // Block evaluation highlights during active single step march iterations
+  if (isAnimatingMove) return []; 
   const indices = [];
   const canOpenNow = state.diceIsDouble || state.dice.includes(6);
   [0, 1].forEach(idx => {
@@ -439,7 +446,6 @@ function currentRollHasSix() {
   return [0,1].some(idx => !state.diceUsed[idx] && state.dice[idx] === 6);
 }
 
-// Helper utility for sequential stepping pauses
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 async function performMove(colorContext, tokenId, dieIdx){
@@ -456,30 +462,26 @@ async function performMove(colorContext, tokenId, dieIdx){
   state.diceUsed[dieIdx] = true;
   document.getElementById('popoverContainer').innerHTML = '';
 
-  // Step 1: Open token from base yard to index 0 track lane entry cell
   if(token.state==='yard'){
     token.state='path'; 
     token.pos=0;
     playStepSound();
     renderAll();
-    await sleep(320); // Smooth incremental visual cadence
+    await sleep(340); 
   } else {
-    // Step 2: Sequential step-by-step march looping index progression tracks
     const targetPos = token.pos + dieValue;
     while(token.pos < targetPos) {
       token.pos += 1;
       
-      // Dynamic route classification bounds validation
       if(token.pos>=51 && token.pos<=56){ token.state='home'; }
       if(token.pos===57){ token.state='done'; completedThisMove=true; }
       
       playStepSound();
       renderAll();
-      await sleep(320); // 320ms paced stepping cadence
+      await sleep(340); 
     }
   }
 
-  // Final lane settlement checks (Kills, Goals & Captures)
   if(token.pos>=0 && token.pos<=50){
     const absIdx = absIndexFor(movingPlayer.color, token.pos);
     if(!isSafeAbs(absIdx)){
@@ -577,7 +579,6 @@ function hasAnyLegalMoveLeft(player) {
   return false;
 }
 
-/* ---------------------- BOT ENGINE AI ---------------------- */
 function executeBotTurn() {
   if (state.phase !== 'moving' || !currentPlayer().isBot || isAnimatingMove) return;
   
@@ -609,7 +610,6 @@ function executeBotTurn() {
   performMove(bot.color, choice.token.id, choice.dieIdx);
 }
 
-/* ---------------------- RENDERER ---------------------- */
 const svg = document.getElementById('board');
 const NS = 'http://www.w3.org/2000/svg';
 function el(tag, attrs){
@@ -860,7 +860,6 @@ function renderAll(){
   }
 }
 
-/* ---------------------- TURN MACHINE ---------------------- */
 function setMsg(text){ document.getElementById('msg').textContent = text || '\u00A0'; }
 
 function onRollClick(){
@@ -984,7 +983,6 @@ function init(selectedMode){
   }
 }
 
-/* ---------------------- CONFIG LOBBY INTERFACES ---------------------- */
 const labels = [document.getElementById('lblLocal'), document.getElementById('lblBotSolo'), document.getElementById('lblBotTeam')];
 labels.forEach(lbl => {
   lbl.addEventListener('click', () => {
@@ -1013,3 +1011,6 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
+"""
+
+display(HTML(html_content))
