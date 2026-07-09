@@ -1,6 +1,4 @@
-from IPython.display import HTML
-
-html_content = """
+Anther
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -351,7 +349,6 @@ const HEXSOLID = { red:'#e8483a', green:'#2fae66', yellow:'#f2ab27', blue:'#3a7d
 let state = null;
 let isAnimatingMove = false; 
 
-// Fail-proof Web Audio API Synthesizer (Eliminates CORS/File Loading failures entirely)
 let audioCtx = null;
 
 function initAudioContext() {
@@ -364,16 +361,15 @@ function playStepSound() {
   try {
     initAudioContext();
     if (audioCtx && audioCtx.state !== 'suspended') {
-      // Synthesize a crisp boarding click step note programmatically
       let osc = audioCtx.createOscillator();
       let gainNode = audioCtx.createGain();
       
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(580, audioCtx.currentTime); // Pitch frequency
+      osc.frequency.setValueAtTime(580, audioCtx.currentTime); 
       osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.08);
       
       gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08); // Quick Decay
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08); 
       
       osc.connect(gainNode);
       gainNode.connect(audioCtx.destination);
@@ -441,7 +437,6 @@ function occupantsAtAbs(absIdx, excludeColor){
 
 function isSafeAbs(absIdx){ return SAFE_ABS.includes(absIdx); }
 
-// FIXED: Token can now only open if that SPECIFIC selected die evaluation is a 6 or double
 function canTokenUseDie(player, token, dieValue){
   if(token.state==='done') return false;
   if(token.state==='yard') {
@@ -453,7 +448,6 @@ function canTokenUseDie(player, token, dieValue){
   return true;
 }
 
-// FIXED: Passed specific single die context calculation variables directly
 function getLegalDiceIndicesForToken(player, token) {
   if (isAnimatingMove) return []; 
   const indices = [];
@@ -624,7 +618,6 @@ function executeBotTurn() {
     return;
   }
 
-  // Priority sorting logic
   choices.sort((a, b) => {
     if(a.token.state === 'yard' && b.token.state !== 'yard') return -1;
     return b.token.pos - a.token.pos; 
@@ -719,56 +712,92 @@ function tokenPixelPos(color, token){
   return [cIdx*CELL+CELL/2, r*CELL+CELL/2];
 }
 
+// FIXED: Enhanced dynamic positioning configuration cluster map layout
 function renderTokens(){
   const layer = document.getElementById('tokenLayer');
   layer.innerHTML = '';
   const activeMainPlayer = currentPlayer();
 
-  for(const p of state.players){
-    const byCell = {};
-    p.tokens.forEach(t=>{
-      const key = t.state+':'+t.pos;
-      (byCell[key] = byCell[key]||[]).push(t);
-    });
-    for(const key in byCell){
-      const group = byCell[key];
-      group.forEach((t, gi)=>{
-        let [cx,cy] = tokenPixelPos(p.color, t);
-        if(group.length>1 && t.state!=='yard'){
-          const off = (gi - (group.length-1)/2) * 9;
-          cx += off; cy += off*0.3;
-        }
-        
-        let legalDiceIdx = [];
-        let contextColor = p.color;
+  // Step 1: Cluster and index every active track token across the canvas layout
+  const globalCellMap = {};
 
-        if (state.phase === 'moving' && !activeMainPlayer.isBot && !isAnimatingMove) {
-          if (p.color === activeMainPlayer.color) {
-            legalDiceIdx = getLegalDiceIndicesForToken(activeMainPlayer, t);
-          } 
-          else if (state.mode === 'botsTeam' && activeMainPlayer.color === 'red' && p.color === 'yellow' && currentRollHasSix()) {
-            const redFinished = state.players.find(pl=>pl.color==='red').tokens.every(tk=>tk.state==='done');
-            const yellowFinished = state.players.find(pl=>pl.color==='yellow').tokens.every(tk=>tk.state==='done');
-            if(redFinished || yellowFinished) {
-              legalDiceIdx = getLegalDiceIndicesForToken(p, t);
-            }
+  for (const p of state.players) {
+    p.tokens.forEach(t => {
+      if (t.state === 'yard' || t.state === 'done') return;
+      
+      // Form absolute map coordinate registry string keys
+      let cellKey = '';
+      if (t.state === 'path') {
+        cellKey = `path:${absIndexFor(p.color, t.pos)}`;
+      } else if (t.state === 'home') {
+        cellKey = `home:${p.color}:${t.pos}`;
+      }
+
+      if (!globalCellMap[cellKey]) {
+        globalCellMap[cellKey] = [];
+      }
+      globalCellMap[cellKey].push({ player: p, token: t });
+    });
+  }
+
+  // Step 2: Render all tokens applying precise relative distribution vectors
+  for(const p of state.players){
+    p.tokens.forEach(t => {
+      let [cx, cy] = tokenPixelPos(p.color, t);
+      
+      if (t.state === 'path' || t.state === 'home') {
+        let cellKey = (t.state === 'path') ? `path:${absIndexFor(p.color, t.pos)}` : `home:${p.color}:${t.pos}`;
+        const cluster = globalCellMap[cellKey] || [];
+        
+        if (cluster.length > 1) {
+          // Find this specific token's index inside the cluster
+          const tokenIndex = cluster.findIndex(item => item.player.color === p.color && item.token.id === t.id);
+          
+          // Generate an elegant radial offset arrangement mapping up to 16 positions safely
+          const totalItems = cluster.length;
+          const angle = (tokenIndex * (2 * Math.PI / totalItems));
+          
+          // Micro dynamic radius based on how crowded the specific stop is
+          const radius = totalItems <= 2 ? 6 : (totalItems <= 4 ? 9 : 12);
+          
+          cx += Math.cos(angle) * radius;
+          cy += Math.sin(angle) * radius * 0.8; 
+        }
+      } else if (t.state === 'done') {
+        // Subtle offset for stacked items in the final goal vector
+        cx += (t.id - 1.5) * 5;
+        cy += (t.id - 1.5) * 2;
+      }
+        
+      let legalDiceIdx = [];
+      let contextColor = p.color;
+
+      if (state.phase === 'moving' && !activeMainPlayer.isBot && !isAnimatingMove) {
+        if (p.color === activeMainPlayer.color) {
+          legalDiceIdx = getLegalDiceIndicesForToken(activeMainPlayer, t);
+        } 
+        else if (state.mode === 'botsTeam' && activeMainPlayer.color === 'red' && p.color === 'yellow' && currentRollHasSix()) {
+          const redFinished = state.players.find(pl=>pl.color==='red').tokens.every(tk=>tk.state==='done');
+          const yellowFinished = state.players.find(pl=>pl.color==='yellow').tokens.every(tk=>tk.state==='done');
+          if(redFinished || yellowFinished) {
+            legalDiceIdx = getLegalDiceIndicesForToken(p, t);
           }
         }
+      }
 
-        const isMovable = legalDiceIdx.length > 0;
+      const isMovable = legalDiceIdx.length > 0;
 
-        const g = el('g',{class:'token'+(isMovable?' movable':''), 'style':`transform: translate(${cx}px, ${cy}px);`, 'data-color':p.color, 'data-id':t.id});
-        g.appendChild(el('circle',{cx:0,cy:0,r:11,fill:HEXSOLID[p.color],stroke:'#3a2604','stroke-width':2}));
-        g.appendChild(el('circle',{cx:-3,cy:-3,r:3.2,fill:'rgba(255,255,255,0.55)'}));
-        if(t.state==='done'){
-          g.appendChild(el('circle',{cx:0,cy:0,r:14,fill:'none',stroke:'#ffffff','stroke-width':1.4,'stroke-dasharray':'2 2'}));
-        }
-        if(isMovable && !isAnimatingMove){
-          g.addEventListener('click', (e)=>onTokenClick(contextColor, t.id, cx, cy, legalDiceIdx, t.state));
-        }
-        layer.appendChild(g);
-      });
-    }
+      const g = el('g',{class:'token'+(isMovable?' movable':''), 'style':`transform: translate(${cx}px, ${cy}px);`, 'data-color':p.color, 'data-id':t.id});
+      g.appendChild(el('circle',{cx:0,cy:0,r:11,fill:HEXSOLID[p.color],stroke:'#3a2604','stroke-width':2}));
+      g.appendChild(el('circle',{cx:-3,cy:-3,r:3.2,fill:'rgba(255,255,255,0.55)'}));
+      if(t.state==='done'){
+        g.appendChild(el('circle',{cx:0,cy:0,r:14,fill:'none',stroke:'#ffffff','stroke-width':1.4,'stroke-dasharray':'2 2'}));
+      }
+      if(isMovable && !isAnimatingMove){
+        g.addEventListener('click', (e)=>onTokenClick(contextColor, t.id, cx, cy, legalDiceIdx, t.state));
+      }
+      layer.appendChild(g);
+    });
   }
 }
 
@@ -1016,7 +1045,6 @@ labels.forEach(lbl => {
 });
 
 document.getElementById('enterGameBtn').addEventListener('click', () => {
-  // Hardwired user handshake audio activation trigger track
   initAudioContext();
   if (audioCtx && audioCtx.state === 'suspended') {
     audioCtx.resume();
@@ -1041,6 +1069,3 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
-"""
-
-display(HTML(html_content))
