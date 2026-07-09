@@ -1,4 +1,6 @@
+from IPython.display import HTML
 
+html_content = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -64,6 +66,7 @@
     flex-direction:column;
     align-items:center;
     gap:12px;
+    position:relative;
   }
   /* ---------- turn banner ---------- */
   .turn-banner{
@@ -82,7 +85,7 @@
     font-family:'Baloo 2';font-weight:700;font-size:15px;
   }
   .swatch{width:20px;height:20px;border-radius:50%;box-shadow:inset 0 -2px 3px rgba(0,0,0,0.35), 0 0 0 2px rgba(255,255,255,0.5);}
-  #turnName { display: none; } /* Hide the turn name text */
+  #turnName { display: none; }
   .status-line{font-size:11.5px;color:#cfe8da;min-height:14px;text-align:right;flex:1;}
   /* ---------- board ---------- */
   .board-wrap{
@@ -94,19 +97,12 @@
     background:linear-gradient(145deg, var(--wood), var(--wood-dark));
     box-shadow:0 12px 30px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(0,0,0,0.25);
     transition: box-shadow 0.3s ease-in-out;
+    position:relative;
   }
-  .board-wrap.red-turn {
-    box-shadow:0 0 10px 5px var(--red), 0 12px 30px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(0,0,0,0.25);
-  }
-  .board-wrap.green-turn {
-    box-shadow:0 0 10px 5px var(--green), 0 12px 30px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(0,0,0,0.25);
-  }
-  .board-wrap.yellow-turn {
-    box-shadow:0 0 10px 5px var(--yellow), 0 12px 30px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(0,0,0,0.25);
-  }
-  .board-wrap.blue-turn {
-    box-shadow:0 0 10px 5px var(--blue), 0 12px 30px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(0,0,0,0.25);
-  }
+  .board-wrap.red-turn { box-shadow:0 0 10px 5px var(--red), 0 12px 30px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(0,0,0,0.25); }
+  .board-wrap.green-turn { box-shadow:0 0 10px 5px var(--green), 0 12px 30px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(0,0,0,0.25); }
+  .board-wrap.yellow-turn { box-shadow:0 0 10px 5px var(--yellow), 0 12px 30px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(0,0,0,0.25); }
+  .board-wrap.blue-turn { box-shadow:0 0 10px 5px var(--blue), 0 12px 30px rgba(0,0,0,0.45), inset 0 0 0 3px rgba(0,0,0,0.25); }
   svg#board{width:100%;height:100%;display:block;border-radius:10px;overflow:visible;}
   .token{cursor:pointer;transition:transform .18s ease;}
   .token.movable{animation:pulse 1s ease-in-out infinite;}
@@ -114,6 +110,40 @@
   @keyframes pulse{
     0%,100%{filter:drop-shadow(0 0 0px rgba(255,255,255,0));}
     50%{filter:drop-shadow(0 0 6px rgba(255,255,255,0.9));}
+  }
+  /* ---------- context selector popover ---------- */
+  .die-popover {
+    position: absolute;
+    display: flex;
+    gap: 6px;
+    background: rgba(15, 43, 33, 0.95);
+    border: 2px solid var(--gold);
+    border-radius: 10px;
+    padding: 6px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    z-index: 100;
+    transform: translate(-50%, -120%);
+    pointer-events: auto;
+  }
+  .popover-btn {
+    background: linear-gradient(160deg, #fffdf8, #e7ded0);
+    color: var(--ink);
+    border: none;
+    font-family: 'Baloo 2';
+    font-weight: 800;
+    font-size: 14px;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .popover-btn:hover {
+    background: var(--gold);
+    color: #3a2604;
   }
   /* ---------- controls ---------- */
   .controls{
@@ -132,7 +162,6 @@
     padding:8px;position:relative;
     transition:transform .15s ease, box-shadow .15s ease;
   }
-  .die.selectable{cursor:pointer;outline:3px solid var(--gold);outline-offset:2px;}
   .die.used{opacity:0.35;filter:grayscale(0.6);}
   .die.rolling{animation:roll 0.55s ease;}
   @keyframes roll{
@@ -153,10 +182,7 @@
   }
   .roll-btn:active{transform:translateY(3px);box-shadow:0 2px 0 #9c7018;}
   .roll-btn:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none;transform:none;}
-  .msg{
-    min-height:20px;font-size:13.5px;font-weight:700;color:var(--gold);text-align:center;
-  }
-  /* ---------- log ---------- */
+  .msg{min-height:20px;font-size:13.5px;font-weight:700;color:var(--gold);text-align:center;}
   .log-panel{
     width:100%;max-width:520px;
     background:rgba(0,0,0,0.25);
@@ -170,35 +196,17 @@
   }
   .log-panel .title{font-family:'Baloo 2';font-weight:700;color:var(--gold);font-size:12.5px;margin-bottom:4px;}
   .log-panel div.entry{padding:2px 0;border-bottom:1px dashed rgba(255,255,255,0.06);}
-  /* ---------- player legend ---------- */
   .legend{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;font-size:11px;color:#cfe8da;}
   .legend span{display:flex;align-items:center;gap:5px;}
   .legend i{width:11px;height:11px;border-radius:50%;display:inline-block;}
-  /* ---------- win modal ---------- */
-  .overlay{
-    position:fixed;inset:0;background:rgba(0,0,0,0.65);
-    display:none;align-items:center;justify-content:center;z-index:50;padding:20px;
-  }
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);display:none;align-items:center;justify-content:center;z-index:50;padding:20px;}
   .overlay.show{display:flex;}
-  .modal{
-    background:linear-gradient(160deg,#173f2d,#0e2a1f);
-    border:2px solid var(--gold);border-radius:20px;
-    padding:28px 26px;max-width:320px;text-align:center;
-    box-shadow:0 20px 50px rgba(0,0,0,0.6);
-  }
+  .modal{background:linear-gradient(160deg,#173f2d,#0e2a1f);border:2px solid var(--gold);border-radius:20px;padding:28px 26px;max-width:320px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.6);}
   .modal h2{font-family:'Baloo 2';color:var(--gold);margin:0 0 8px;font-size:26px;}
   .modal p{font-size:13.5px;color:#dff0e6;margin-bottom:18px;}
-  .modal button{
-    font-family:'Baloo 2';font-weight:700;padding:10px 26px;border-radius:24px;border:none;
-    background:var(--gold);color:#3a2604;cursor:pointer;
-  }
-  .rules-toggle{
-    font-size:12px;color:#a9d3bd;text-decoration:underline;cursor:pointer;background:none;border:none;
-  }
-  .rules-box{
-    display:none;width:100%;max-width:520px;background:rgba(0,0,0,0.25);
-    border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px 16px;font-size:12px;line-height:1.6;color:#d8ecdf;
-  }
+  .modal button{font-family:'Baloo 2';font-weight:700;padding:10px 26px;border-radius:24px;border:none;background:var(--gold);color:#3a2604;cursor:pointer;}
+  .rules-toggle{font-size:12px;color:#a9d3bd;text-decoration:underline;cursor:pointer;background:none;border:none;}
+  .rules-box{display:none;width:100%;max-width:520px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px 16px;font-size:12px;line-height:1.6;color:#d8ecdf;}
   .rules-box.show{display:block;}
   .rules-box b{color:var(--gold);}
 </style>
@@ -209,13 +217,15 @@
 <div class="subtitle">Two dice every turn · doubles play as double‑sixes · you must draw blood before you come home.</div>
 
 <div class="app">
-
   <div class="turn-banner">
     <div class="turn-chip"><span class="swatch" id="turnSwatch"></span><span id="turnName">Red's turn</span></div>
     <div class="status-line" id="statusLine">Tap Roll to begin</div>
   </div>
 
-  <div class="board-wrap" id="boardWrap"><svg id="board" viewBox="0 0 600 600"></svg></div>
+  <div class="board-wrap" id="boardWrap">
+    <svg id="board" viewBox="0 0 600 600"></svg>
+    <div id="popoverContainer"></div>
+  </div>
 
   <div class="controls">
     <div class="msg" id="msg">&nbsp;</div>
@@ -259,22 +269,7 @@
 </div>
 
 <script>
-/* =========================================================================
-   LUDO — DOUBLE TROUBLE
-   Self-contained game engine + renderer.
-   Sections:
-     1. Board geometry (shared path, home columns, safe cells, yards)
-     2. Game state model
-     3. Rule engine (open / move / capture / home-entry / bonus rolls)
-     4. Renderer (SVG board + dice + UI)
-     5. Input handling / turn state machine
-   ========================================================================= */
-
-/* ---------------------- 1. BOARD GEOMETRY ---------------------- */
-
-const CELL = 40; // px per board cell in the 15x15 (600x600) viewBox
-
-// The 52 shared-path cells in travel order (row, col), 0-indexed.
+const CELL = 40;
 const PATH = [
   [6,1],[6,2],[6,3],[6,4],[6,5],
   [5,6],[4,6],[3,6],[2,6],[1,6],[0,6],
@@ -300,77 +295,50 @@ const HOME_COLUMN = {
   blue:   [[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]]
 };
 const CENTER = [7,7];
-
-// Safe cells: every color's start square + one "star" square per quarter.
 const SAFE_ABS = [0,8,13,21,26,34,39,47];
-
-// Yard (base) slot coordinates — 2x2 grid of parking spots inside each corner.
 const YARD_ORIGIN = { red:[1,1], green:[9.6,1], yellow:[9.6,9.6], blue:[1,9.6] };
+
 function yardSlot(color, idx){
   const [ox,oy] = YARD_ORIGIN[color];
   const dx = idx % 2, dy = Math.floor(idx/2);
-  return [ox + dx*2.4 + 1.2, oy + dy*2.4 + 1.2]; // returns [col,row] in cell units (fractional)
+  return [ox + dx*2.4 + 1.2, oy + dy*2.4 + 1.2];
 }
 
-const HEX = {
-  red:'var(--red)', green:'var(--green)', yellow:'var(--yellow)', blue:'var(--blue)'
-};
 const HEXSOLID = { red:'#e8483a', green:'#2fae66', yellow:'#f2ab27', blue:'#3a7de8' };
-const HEXDARK  = { red:'#b8321f', green:'#1c7a45', yellow:'#c07f0a', blue:'#1f4fb8' };
-
-/* ---------------------- 2. GAME STATE ---------------------- */
-
-function newPlayer(color){
-  return {
-    color,
-    tokens: [0,1,2,3].map(i => ({ id:i, state:'yard', pos:-1 })), // state: yard | path | home | done
-    hasKilled: false,          // "blood before home" permission
-    hasRolledBefore: false,    // for the once-per-game first-turn mercy roll
-    firstTurnBonusAvailable: true,
-    finished: false
-  };
-}
 
 let state = null;
 function freshState(){
   return {
-    players: COLORS.map(newPlayer),
+    players: COLORS.map(color => ({
+      color,
+      tokens: [0,1,2,3].map(i => ({ id:i, state:'yard', pos:-1 })),
+      hasKilled: false,
+      hasRolledBefore: false,
+      firstTurnBonusAvailable: true,
+      finished: false
+    })),
     currentPlayerIndex: 0,
     dice: [1,1],
     diceIsDouble: false,
     diceUsed: [true,true],
-    selectedDie: null,
-    extraRolls: 0,
-    phase: 'idle', // idle | animating | moving | gameover
+    phase: 'idle',
     winner: null,
     log: []
   };
 }
 
-/* ---------------------- 3. RULE ENGINE ---------------------- */
-
 function activePlayers(){ return state.players.filter(p=>!p.finished); }
-
-function currentPlayer(){ return state.players[state.currentPlayerIndex]; }
-
-function absIndexFor(color, pos){ // pos 0..50 -> absolute index on shared 52-cell path
-  return (START_OFFSET[color] + pos) % 52;
-}
+  currentPlayer(){ return state.players[state.currentPlayerIndex]; }
+function absIndexFor(color, pos){ return (START_OFFSET[color] + pos) % 52; }
 
 function cellCoordFor(color, pos){
-  // pos: -1 yard handled elsewhere; 0..50 shared path; 51..56 home column; 57 done (center)
   if(pos>=0 && pos<=50) return PATH[absIndexFor(color,pos)];
   if(pos>=51 && pos<=56) return HOME_COLUMN[color][pos-51];
   if(pos===57) return CENTER;
   return null;
 }
 
-function tokensAt(color, pos){
-  return state.players.find(p=>p.color===color).tokens.filter(t=>t.state!=='yard' && t.state!=='done' && t.pos===pos);
-}
-
 function occupantsAtAbs(absIdx, excludeColor){
-  // returns [{color, tokenIds:[..]}] of tokens sitting on this absolute shared-path cell
   const groups = [];
   for(const p of state.players){
     if(p.color===excludeColor) continue;
@@ -382,16 +350,12 @@ function occupantsAtAbs(absIdx, excludeColor){
 
 function isSafeAbs(absIdx){ return SAFE_ABS.includes(absIdx); }
 
-// Can this token legally use this die value right now?
 function canTokenUseDie(player, token, dieValue, canOpenNow){
   if(token.state==='done') return false;
-  if(token.state==='yard'){
-    return canOpenNow; // opening always just places it on the start square
-  }
+  if(token.state==='yard') return canOpenNow;
   const newPos = token.pos + dieValue;
   if(newPos > 57) return false;
-  if(token.pos < 51 && newPos >= 51 && !player.hasKilled) return false; // blood-before-home
-  // block check: can't land on a cell fortified by 2+ opposing tokens of one color
+  if(token.pos < 51 && newPos >= 51 && !player.hasKilled) return false;
   if(newPos>=0 && newPos<=50){
     const absIdx = absIndexFor(player.color, newPos);
     if(!isSafeAbs(absIdx)){
@@ -402,8 +366,16 @@ function canTokenUseDie(player, token, dieValue, canOpenNow){
   return true;
 }
 
-function movableTokensForDie(player, dieValue, canOpenNow){
-  return player.tokens.filter(t => canTokenUseDie(player, t, dieValue, canOpenNow)).map(t=>t.id);
+// Get which available dice index (0 or 1) can be legally used by this token
+function getLegalDiceIndicesForToken(player, token) {
+  const indices = [];
+  const canOpenNow = state.diceIsDouble || state.dice.includes(6);
+  [0, 1].forEach(idx => {
+    if (!state.diceUsed[idx] && canTokenUseDie(player, token, state.dice[idx], canOpenNow)) {
+      indices.push(idx);
+    }
+  });
+  return indices;
 }
 
 function addLog(text){
@@ -412,12 +384,14 @@ function addLog(text){
   renderLog();
 }
 
-// Executes moving `tokenId` of the current player using die value `dieValue`. 
-function performMove(tokenId, dieValue){
+function performMove(tokenId, dieIdx){
   const player = currentPlayer();
   const token = player.tokens.find(t=>t.id===tokenId);
+  const dieValue = state.dice[dieIdx];
   let capturedSomething = false;
   let completedSomething = false;
+
+  state.diceUsed[dieIdx] = true;
 
   if(token.state==='yard'){
     token.state='path'; token.pos=0;
@@ -428,19 +402,17 @@ function performMove(tokenId, dieValue){
     if(token.pos===57){ token.state='done'; completedSomething=true; }
   }
 
-  // capture check (only relevant on the shared path, 0..50)
   if(token.pos>=0 && token.pos<=50){
     const absIdx = absIndexFor(player.color, token.pos);
     if(!isSafeAbs(absIdx)){
       const groups = occupantsAtAbs(absIdx, player.color);
       for(const g of groups){
-        if(g.ids.length===1){ // exactly one enemy token here -> captured
+        if(g.ids.length===1){
           const enemy = state.players.find(p=>p.color===g.color);
           const enemyToken = enemy.tokens.find(t=>t.id===g.ids[0]);
           enemyToken.state='yard'; enemyToken.pos=-1;
           capturedSomething = true;
           addLog(`💥 ${cap(player.color)} captures ${cap(g.color)}'s token!`);
-          // reset that player's kill-permission if ALL of their tokens are now home in the yard
           if(enemy.tokens.every(t=>t.state==='yard')){
             if(enemy.hasKilled){
               enemy.hasKilled = false;
@@ -465,10 +437,33 @@ function performMove(tokenId, dieValue){
     player.finished = true;
     state.winner = player.color;
   }
+
+  document.getElementById('popoverContainer').innerHTML = '';
+
+  if(state.winner){
+    renderAll();
+    setTimeout(showWin, 400);
+    return;
+  }
+
+  // Auto-check remaining options
+  const unusedIndices = [0, 1].filter(i => !state.diceUsed[i]);
+  if(unusedIndices.length === 0) {
+    setTimeout(()=>resolveTurnSegment(), 350);
+  } else {
+    // See if any player token can use any remaining dice
+    const canStillMove = player.tokens.some(t => getLegalDiceIndicesForToken(player, t).length > 0);
+    if(!canStillMove) {
+      addLog(`${cap(player.color)} has no remaining legal moves.`);
+      setTimeout(()=>resolveTurnSegment(), 350);
+    } else {
+      setMsg('Select another token to move.');
+      renderAll();
+    }
+  }
 }
 
-/* ---------------------- 4. RENDERER ---------------------- */
-
+/* ---------------------- RENDERER ---------------------- */
 const svg = document.getElementById('board');
 const NS = 'http://www.w3.org/2000/svg';
 function el(tag, attrs){
@@ -480,20 +475,15 @@ function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
 
 function buildStaticBoard(){
   svg.innerHTML = '';
-  // background
   svg.appendChild(el('rect',{x:0,y:0,width:600,height:600,fill:'#eee3c8',rx:6}));
 
-  // 4 base quadrants
-  const bases = {
-    red:[0,0], green:[9*CELL,0], yellow:[9*CELL,9*CELL], blue:[0,9*CELL]
-  };
+  const bases = { red:[0,0], green:[9*CELL,0], yellow:[9*CELL,9*CELL], blue:[0,9*CELL] };
   for(const c of COLORS){
     const [x,y] = bases[c];
     svg.appendChild(el('rect',{x,y,width:6*CELL,height:6*CELL,fill:HEXSOLID[c],rx:18,opacity:0.28}));
     svg.appendChild(el('rect',{x:x+16,y:y+16,width:6*CELL-32,height:6*CELL-32,fill:'#fbf6e8',rx:16}));
   }
 
-  // shared path cells
   for(let i=0;i<52;i++){
     const [r,cIdx] = PATH[i];
     const rect = el('rect',{x:cIdx*CELL,y:r*CELL,width:CELL,height:CELL,fill:'#fbf6e8',stroke:'#cfc4a0','stroke-width':1});
@@ -501,16 +491,13 @@ function buildStaticBoard(){
     if(isSafeAbs(i)){
       svg.appendChild(el('circle',{cx:cIdx*CELL+CELL/2,cy:r*CELL+CELL/2,r:8,fill:'none',stroke:'#8a7c53','stroke-width':2}));
     }
-    // color the four start squares
     for(const c of COLORS){ if(START_OFFSET[c]===i) rect.setAttribute('fill', hexAlpha(HEXSOLID[c],0.55)); }
   }
-  // home columns
   for(const c of COLORS){
     HOME_COLUMN[c].forEach(([r,cIdx])=>{
       svg.appendChild(el('rect',{x:cIdx*CELL,y:r*CELL,width:CELL,height:CELL,fill:HEXSOLID[c],opacity:0.55,stroke:'#cfc4a0','stroke-width':1}));
     });
   }
-  // center home triangle-ish
   const cx=7*CELL, cy=7*CELL;
   svg.appendChild(el('rect',{x:cx,y:cy,width:CELL,height:CELL,fill:'#fbf6e8',stroke:'#cfc4a0'}));
   const tri = [
@@ -521,14 +508,12 @@ function buildStaticBoard(){
   ];
   tri.forEach(t=>svg.appendChild(el('polygon',{points:t.pts, fill:t.fill})));
 
-  // yard markers (4 slot dots) per color, faint
   for(const c of COLORS){
     for(let i=0;i<4;i++){
       const [col,row] = yardSlot(c,i);
       svg.appendChild(el('circle',{cx:col*CELL,cy:row*CELL,r:13,fill:'#00000010'}));
     }
   }
-
   svg.appendChild(el('g',{id:'tokenLayer'}));
 }
 function hexAlpha(hex, a){
@@ -541,20 +526,18 @@ function tokenPixelPos(color, token){
     const [col,row] = yardSlot(color, token.id);
     return [col*CELL, row*CELL];
   }
-  const coord = cellCoordFor(color, token.pos); // [row, col]
+  const coord = cellCoordFor(color, token.pos);
   if(!coord) return [0,0];
   const [r,cIdx] = coord;
-  // stack offset so multiple tokens on one cell don't fully overlap
   return [cIdx*CELL+CELL/2, r*CELL+CELL/2];
 }
 
 function renderTokens(){
   const layer = document.getElementById('tokenLayer');
   layer.innerHTML = '';
-  const movable = getMovableSet();
+  const player = currentPlayer();
 
   for(const p of state.players){
-    // group same-cell tokens to apply a tiny stack offset
     const byCell = {};
     p.tokens.forEach(t=>{
       const key = t.state+':'+t.pos;
@@ -568,7 +551,11 @@ function renderTokens(){
           const off = (gi - (group.length-1)/2) * 9;
           cx += off; cy += off*0.3;
         }
-        const isMovable = movable.has(p.color+':'+t.id);
+        
+        // A token is active if it's the current player's turn and has legal dice choices left
+        const legalDiceIdx = (state.phase === 'moving' && p.color === player.color) ? getLegalDiceIndicesForToken(player, t) : [];
+        const isMovable = legalDiceIdx.length > 0;
+
         const g = el('g',{class:'token'+(isMovable?' movable':''), 'data-color':p.color, 'data-id':t.id});
         g.appendChild(el('circle',{cx,cy,r:11,fill:HEXSOLID[p.color],stroke:'#3a2604','stroke-width':2}));
         g.appendChild(el('circle',{cx:cx-3,cy:cy-3,r:3.2,fill:'rgba(255,255,255,0.55)'}));
@@ -576,7 +563,7 @@ function renderTokens(){
           g.appendChild(el('circle',{cx,cy,r:14,fill:'none',stroke:'#ffffff','stroke-width':1.4,'stroke-dasharray':'2 2'}));
         }
         if(isMovable){
-          g.addEventListener('click', ()=>onTokenClick(p.color, t.id));
+          g.addEventListener('click', (e)=>onTokenClick(p.color, t.id, cx, cy, legalDiceIdx));
         }
         layer.appendChild(g);
       });
@@ -584,20 +571,60 @@ function renderTokens(){
   }
 }
 
-function getMovableSet(){
-  const set = new Set();
-  if(state.phase!=='moving' || state.selectedDie===null) return set;
-  const player = currentPlayer();
-  const dieValue = state.dice[state.selectedDie];
-  const canOpenNow = state.diceIsDouble || state.dice.includes(6);
-  ids.forEach(id => set.add(player.color+':'+id));
-  return set;
+function onTokenClick(color, tokenId, cx, cy, legalDiceIdx){
+  if(state.phase !== 'moving' || color !== currentPlayer().color) return;
+  
+  // Requirement: If only ONE playable die option is available, execute instantly without asking
+  if(legalDiceIdx.length === 1) {
+    performMove(tokenId, legalDiceIdx[0]);
+    return;
+  }
+
+  // Requirement: If multiple choices (like dynamic distinct dice values remaining), display numbers directly over token
+  const container = document.getElementById('popoverContainer');
+  container.innerHTML = '';
+
+  // Calculate percentage placement relative to the 600x600 board container view
+  const leftPercent = (cx / 600) * 100;
+  const topPercent = (cy / 600) * 100;
+
+  const popover = document.createElement('div');
+  popover.className = 'die-popover';
+  popover.style.left = `${leftPercent}%`;
+  popover.style.top = `${topPercent}%`;
+
+  // Filter distinct values to keep duplicates from showing up twice if it's a double
+  const uniqueIndices = [];
+  const seenValues = new Set();
+  legalDiceIdx.forEach(idx => {
+    const val = state.dice[idx];
+    if(!seenValues.has(val)) {
+      seenValues.add(val);
+      uniqueIndices.push(idx);
+    }
+  });
+
+  // Unique menu fallback logic: if values are identical (like 6 and 6), it just executes outright
+  if(uniqueIndices.length === 1) {
+     performMove(tokenId, uniqueIndices[0]);
+     return;
+  }
+
+  uniqueIndices.forEach(idx => {
+    const btn = document.createElement('button');
+    btn.className = 'popover-btn';
+    btn.textContent = state.dice[idx];
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      performMove(tokenId, idx);
+    });
+    popover.appendChild(btn);
+  });
+
+  container.appendChild(popover);
 }
 
-/* ---- dice UI ---- */
-const PIP_LAYOUTS = {
-  1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]
-};
+const PIP_LAYOUTS = { 1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8] };
 function renderDie(idx){
   const die = document.getElementById('die'+idx);
   die.innerHTML='';
@@ -611,8 +638,6 @@ function renderDie(idx){
   const pips = die.children;
   layout.forEach(i => pips[i].classList.add('on'));
   die.classList.toggle('used', state.diceUsed[idx]);
-  die.classList.toggle('selectable', state.phase==='moving' && !state.diceUsed[idx]);
-  die.onclick = () => onDieClick(idx);
 }
 function renderDice(){ renderDie(0); renderDie(1); }
 
@@ -624,15 +649,9 @@ function renderLog(){
 function renderBanner(){
   const p = currentPlayer();
   const boardWrap = document.getElementById('boardWrap');
-
-  // Remove all existing color classes
   COLORS.forEach(color => boardWrap.classList.remove(`${color}-turn`));
-
-  // Add the class for the current player's turn color
   boardWrap.classList.add(`${p.color}-turn`);
-
   document.getElementById('turnSwatch').style.background = HEXSOLID[p.color];
-  // document.getElementById('turnName').textContent = `${cap(p.color)}'s turn`; // This line is now effectively handled by the board glow
   const status = document.getElementById('statusLine');
   status.textContent = p.hasKilled ? 'Cleared to come home ✔' : 'Needs a kill before entering home';
 }
@@ -645,12 +664,12 @@ function renderAll(){
   document.getElementById('rollBtn').disabled = (state.phase!=='idle');
 }
 
-/* ---------------------- 5. TURN STATE MACHINE / INPUT ---------------------- */
-
+/* ---------------------- TURN STATE MACHINE ---------------------- */
 function setMsg(text){ document.getElementById('msg').textContent = text || '\u00A0'; }
 
 function onRollClick(){
   if(state.phase!=='idle') return;
+  document.getElementById('popoverContainer').innerHTML = ''; // Clear stale choices
   doRoll();
 }
 
@@ -660,7 +679,7 @@ function doRoll(){
   document.getElementById('die0').classList.add('rolling');
   document.getElementById('die1').classList.add('rolling');
   setMsg('Rolling…');
-  setTimeout(()=>{ // Added braces
+  setTimeout(()=>{
     document.getElementById('die0').classList.remove('rolling');
     document.getElementById('die1').classList.remove('rolling');
     finishRoll();
@@ -674,9 +693,7 @@ function finishRoll(){
   const isDouble = d1===d2;
   state.diceIsDouble = isDouble;
   state.dice = isDouble ? [6,6] : [d1,d2];
-  state.rawDice = [d1,d2];
   state.diceUsed = [false,false];
-  state.selectedDie = null;
 
   const shownRoll = isDouble ? `${d1} & ${d2} (double → plays as 6 & 6)` : `${d1} & ${d2}`;
   addLog(`${cap(player.color)} rolls ${shownRoll}`);
@@ -684,7 +701,6 @@ function finishRoll(){
   const isFirstRollEver = !player.hasRolledBefore;
   const canOpenNow = state.dice.includes(6);
 
-  // --- first-turn mercy rule ---
   if(isFirstRollEver && !canOpenNow && player.firstTurnBonusAvailable){
     player.firstTurnBonusAvailable = false;
     player.hasRolledBefore = true;
@@ -694,71 +710,23 @@ function finishRoll(){
     return;
   }
   player.hasRolledBefore = true;
-
   renderDice();
 
-  // does the player have ANY legal move with either die?
-  const anyMove = [0,1].some(i => movableTokensForDie(player, state.dice[i], canOpenNow).length>0);
+  const anyMove = player.tokens.some(t => getLegalDiceIndicesForToken(player, t).length > 0);
   if(!anyMove){
     addLog(`${cap(player.color)} has no legal move.`);
     setMsg('No legal move — turn passes.');
-    state.phase='moving'; // briefly, so UI reflects it, then resolve
-    setTimeout(()=>resolveTurnSegment(false), 700);
+    state.phase='moving';
+    setTimeout(()=>resolveTurnSegment(), 700);
     return;
   }
 
   state.phase='moving';
-  setMsg(state.diceIsDouble ? 'Double! Pick a die, then a token.' : 'Pick a die, then a token.');
+  setMsg('Tap a pulsing token to choose its move!');
   renderAll();
 }
 
-function onDieClick(idx){
-  if(state.phase!=='moving') return;
-  if(state.diceUsed[idx]) return;
-  const player = currentPlayer();
-  const canOpenNow = state.dice.includes(6);
-  const legal = movableTokensForDie(player, state.dice[idx], canOpenNow);
-  if(legal.length===0){
-    setMsg('No token can use that die.');
-    return;
-  }
-  state.selectedDie = idx;
-  renderAll();
-}
-
-function onTokenClick(color, tokenId){
-  const player = currentPlayer();
-  if(color!==player.color) return;
-  if(state.phase!=='moving' || state.selectedDie===null) return;
-  const dieIdx = state.selectedDie;
-  const dieValue = state.dice[dieIdx];
-  const canOpenNow = state.dice.includes(6);
-  if(!canTokenUseDie(player, player.tokens.find(t=>t.id===tokenId), dieValue, canOpenNow)) return;
-
-  performMove(tokenId, dieValue);
-  state.diceUsed[dieIdx] = true;
-  state.selectedDie = null;
-
-  if(state.winner){
-    renderAll();
-    setTimeout(showWin, 400);
-    return;
-  }
-
-  // any remaining legal moves on the other die?
-  const remainingIdx = state.diceUsed[0] ? (state.diceUsed[1]?null:1) : 0;
-  const stillCanOpenNow = state.dice.includes(6);
-  const remainingHasMove = remainingIdx!==null && movableTokensForDie(player, state.dice[remainingIdx], stillCanOpenNow).length>0;
-
-  renderAll();
-  if(remainingHasMove){
-    setMsg('Pick your remaining die.');
-  } else {
-    setTimeout(()=>resolveTurnSegment(true), 350);
-  }
-}
-
-function resolveTurnSegment(diceWereFullyOrPartlyUsed){
+function resolveTurnSegment(){
   const player = currentPlayer();
   if(state.diceIsDouble){
     state.extraRolls += 1;
@@ -771,7 +739,6 @@ function resolveTurnSegment(diceWereFullyOrPartlyUsed){
     renderAll();
     return;
   }
-  // pass to next active player
   advanceTurn();
 }
 
@@ -787,7 +754,6 @@ function advanceTurn(){
   } while(state.players[idx].finished);
   state.currentPlayerIndex = idx;
   state.phase='idle';
-  state.selectedDie=null;
   setMsg('\u00A0');
   renderAll();
 }
@@ -796,8 +762,6 @@ function showWin(){
   document.getElementById('winTitle').textContent = `🎉 ${cap(state.winner)} Wins!`;
   document.getElementById('overlay').classList.add('show');
 }
-
-/* ---------------------- boot ---------------------- */
 
 function init(){
   state = freshState();
@@ -815,6 +779,13 @@ document.getElementById('rulesToggle').addEventListener('click', ()=>{
   const box = document.getElementById('rulesBox');
   box.classList.toggle('show');
   document.getElementById('rulesToggle').textContent = box.classList.contains('show') ? 'Hide custom rules' : 'Show custom rules';
+});
+
+// Click outside popover to clear menu choice overlay
+document.addEventListener('click', (e) => {
+  if(!e.target.closest('.token') && !e.target.closest('.die-popover')) {
+    document.getElementById('popoverContainer').innerHTML = '';
+  }
 });
 
 init();
