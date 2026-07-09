@@ -303,7 +303,7 @@ html_content = """
 
 <div class="overlay" id="victoryOverlay">
   <div class="modal">
-    <h2 id="winTitle">🎉 Red Wins!</h2>
+    <h2 id="winTitle">🎉 Arena Cleared!</h2>
     <p id="winSub" style="font-size:13px; color:#dff0e6; margin-bottom:16px;">All target criteria met.</p>
     <button id="playAgainBtn" class="enter-btn" style="margin-top:0;">Play Again</button>
   </div>
@@ -352,11 +352,11 @@ let state = null;
 
 function freshState(modeChoice){
   return {
-    mode: modeChoice, // 'local', 'botsSolo', 'botsTeam'
+    mode: modeChoice,
     players: COLORS.map(color => {
       let isBot = false;
       if(modeChoice === 'botsSolo' && color !== 'red') isBot = true;
-      if(modeChoice === 'botsTeam' && color !== 'red') isBot = true; // yellow is partner bot
+      if(modeChoice === 'botsTeam' && color !== 'red') isBot = true; 
       return {
         color,
         isBot,
@@ -392,7 +392,6 @@ function occupantsAtAbs(absIdx, excludeColor){
   const groups = [];
   for(const p of state.players){
     if(p.color===excludeColor) continue;
-    // Team mode exception: Red and Yellow do not conflict/occupy to fight
     if(state.mode === 'botsTeam') {
       if((excludeColor === 'red' && p.color === 'yellow') || (excludeColor === 'yellow' && p.color === 'red')) {
         continue;
@@ -415,26 +414,23 @@ function canTokenUseDie(player, token, dieValue, canOpenNow){
   return true;
 }
 
-function getLegalDiceIndicesForToken(player, token, explicitDiceUsed) {
+function getLegalDiceIndicesForToken(player, token) {
   const indices = [];
-  const targetUsed = explicitDiceUsed || state.diceUsed;
   const canOpenNow = state.diceIsDouble || state.dice.includes(6);
   [0, 1].forEach(idx => {
-    if (!targetUsed[idx] && canTokenUseDie(player, token, state.dice[idx], canOpenNow)) {
+    if (!state.diceUsed[idx] && canTokenUseDie(player, token, state.dice[idx], canOpenNow)) {
       indices.push(idx);
     }
   });
   return indices;
 }
 
-// Check if Red has at least one 6 unspent to proxy yellow
 function currentRollHasSix() {
   return [0,1].some(idx => !state.diceUsed[idx] && state.dice[idx] === 6);
 }
 
 function performMove(colorContext, tokenId, dieIdx){
   const mainPlayer = currentPlayer();
-  // Target player can either be the active main player, or your finished partner in team mode
   const movingPlayer = state.players.find(p => p.color === colorContext);
   const token = movingPlayer.tokens.find(t=>t.id===tokenId);
   const dieValue = state.dice[dieIdx];
@@ -474,7 +470,6 @@ function performMove(colorContext, tokenId, dieIdx){
   if(killedThisMove){
     movingPlayer.hasKilled = true;
     if(state.mode === 'botsTeam' && movingPlayer.color === 'yellow') {
-       // if your companion got the kill, clear status for team visibility
        state.players.find(p => p.color === 'red').hasKilled = true;
     }
     if(state.mode === 'botsTeam' && movingPlayer.color === 'red') {
@@ -486,9 +481,7 @@ function performMove(colorContext, tokenId, dieIdx){
     state.extraRolls = 1; 
   }
 
-  // Check victory logic conditions based on mode
   checkGameEndConditions();
-
   document.getElementById('popoverContainer').innerHTML = '';
 
   if(state.winner){
@@ -501,12 +494,14 @@ function performMove(colorContext, tokenId, dieIdx){
   if(unusedIndices.length === 0) {
     setTimeout(()=>resolveTurnSegment(), 350);
   } else {
-    // Evaluation check for any further legal moves (including potential teammate moves if Red rolled a 6)
     if(!hasAnyLegalMoveLeft(mainPlayer)) {
       setTimeout(()=>resolveTurnSegment(), 350);
     } else {
-      setMsg('Select another token to continue.');
+      setMsg(mainPlayer.isBot ? 'Bot taking remaining action...' : 'Select another token to continue.');
       renderAll();
+      if(mainPlayer.isBot) {
+         setTimeout(() => executeBotTurn(), 500);
+      }
     }
   }
 }
@@ -532,20 +527,11 @@ function checkGameEndConditions() {
 }
 
 function hasAnyLegalMoveLeft(player) {
-  // Can current player move their own pieces?
   let selfCanMove = player.tokens.some(t => getLegalDiceIndicesForToken(player, t).length > 0);
   if(selfCanMove) return true;
 
-  // Partner control condition check
   if(state.mode === 'botsTeam' && player.color === 'red' && currentRollHasSix()) {
     const partner = state.players.find(p => p.color === 'yellow');
-    if(partner.tokens.every(t => t.state === 'done')) {
-       // Partner finished, red can use remaining dice to control partner? No, partner is finished.
-       // But if partner is finished, red can move partner's pieces? Wait, rule says: "if he reached all his token or you... you can play his role"
-       // This implies if Yellow is finished, Red plays Yellow's role? No, if Yellow is finished, Red moves Red pieces. 
-       // If Red is finished, Red plays Yellow's role with Red's dice after landing a 6!
-    }
-    // Let's check if Yellow needs help or Red needs help
     if(state.players.find(p=>p.color==='red').tokens.every(t=>t.state==='done')) {
        const yCanMove = partner.tokens.some(t => getLegalDiceIndicesForToken(partner, t).length > 0);
        if(yCanMove) return true;
@@ -563,9 +549,9 @@ function executeBotTurn() {
   if (state.phase !== 'moving' || !currentPlayer().isBot) return;
   
   const bot = currentPlayer();
-  
-  // Collect all valid choices for available dice
   let choices = [];
+  
+  // Scans all remaining unspent indices dynamically
   [0, 1].forEach(dieIdx => {
     if(!state.diceUsed[dieIdx]) {
       bot.tokens.forEach(t => {
@@ -578,21 +564,18 @@ function executeBotTurn() {
   });
 
   if(choices.length === 0) {
-    // No choices left for bot
     setTimeout(()=>resolveTurnSegment(), 400);
     return;
   }
 
-  // Prioritize aggressive captures, then getting out of home base, then advancing furthest pieces
+  // Weight layout priority logic
   choices.sort((a, b) => {
     if(a.token.state === 'yard' && b.token.state !== 'yard') return -1;
     return b.token.pos - a.token.pos; 
   });
 
   const choice = choices[0];
-  setTimeout(() => {
-    performMove(bot.color, choice.token.id, choice.dieIdx);
-  }, 600);
+  performMove(bot.color, choice.token.id, choice.dieIdx);
 }
 
 /* ---------------------- RENDERER ---------------------- */
@@ -701,7 +684,6 @@ function renderTokens(){
           cx += off; cy += off*0.3;
         }
         
-        // Figure out if this specific token can currently interact / glow for manual input
         let legalDiceIdx = [];
         let contextColor = p.color;
 
@@ -709,7 +691,6 @@ function renderTokens(){
           if (p.color === activeMainPlayer.color) {
             legalDiceIdx = getLegalDiceIndicesForToken(activeMainPlayer, t);
           } 
-          // Team Proxy Action Rule implementation: Red can control Yellow if criteria matched
           else if (state.mode === 'botsTeam' && activeMainPlayer.color === 'red' && p.color === 'yellow' && currentRollHasSix()) {
             const redFinished = state.players.find(pl=>pl.color==='red').tokens.every(tk=>tk.state==='done');
             const yellowFinished = state.players.find(pl=>pl.color==='yellow').tokens.every(tk=>tk.state==='done');
@@ -908,7 +889,7 @@ function finishRoll(){
   } else {
     setMsg('Bot analyzing optimal lane...');
     renderAll();
-    executeBotTurn();
+    setTimeout(() => executeBotTurn(), 500);
   }
 }
 
@@ -948,7 +929,6 @@ function advanceTurn(){
   setMsg('\u00A0');
   renderAll();
 
-  // Trigger loop safely if target player is bot context
   if(currentPlayer().isBot) {
     setTimeout(() => {
       if(state.phase === 'idle') doRoll();
