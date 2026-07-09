@@ -1,4 +1,6 @@
-Anther 
+from IPython.display import HTML
+
+html_content = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -229,8 +231,6 @@ Anther
 </head>
 <body>
 
-<audio id="stepAudio" src="http://googleusercontent.com/file_content/0" preload="auto" crossorigin="anonymous"></audio>
-
 <div class="app">
   <h1>🎲 Ludo — Double Trouble</h1>
   <div class="subtitle">Where double means trouble, and mercy runs thin.</div>
@@ -351,48 +351,38 @@ const HEXSOLID = { red:'#e8483a', green:'#2fae66', yellow:'#f2ab27', blue:'#3a7d
 let state = null;
 let isAnimatingMove = false; 
 
-// Web Audio API bypass layer to guarantee absolute browser-unlock compliance
+// Fail-proof Web Audio API Synthesizer (Eliminates CORS/File Loading failures entirely)
 let audioCtx = null;
-let audioBuffer = null;
 
-async function forceUnlockBrowserAudio() {
+function initAudioContext() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (audioCtx.state === 'suspended') {
-    await audioCtx.resume();
-  }
-  
-  // Pre-load file into memory immediately upon click interaction
-  const audioEl = document.getElementById('stepAudio');
-  if (audioEl && !audioBuffer) {
-    try {
-      const response = await fetch(audioEl.src);
-      const arrayBuffer = await response.arrayBuffer();
-      audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-    } catch(e) {
-      console.log("Audio pipeline buffered fallback context loading:", e);
-    }
   }
 }
 
 function playStepSound() {
-  if (audioCtx && audioBuffer) {
-    // Blazing fast direct hardware audio graph scheduling
-    const source = audioCtx.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(audioCtx.destination);
-    source.start(0);
-  } else {
-    // Dynamic element node streaming fallback
-    const audioNode = document.getElementById('stepAudio');
-    if (audioNode) {
-      const clone = audioNode.cloneNode(true);
-      clone.volume = 1.0;
-      clone.play().then(() => {
-        clone.addEventListener('ended', () => clone.remove());
-      }).catch(e => console.log("Streaming block trace:", e));
+  try {
+    initAudioContext();
+    if (audioCtx && audioCtx.state !== 'suspended') {
+      // Synthesize a crisp boarding click step note programmatically
+      let osc = audioCtx.createOscillator();
+      let gainNode = audioCtx.createGain();
+      
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(580, audioCtx.currentTime); // Pitch frequency
+      osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.08);
+      
+      gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08); // Quick Decay
+      
+      osc.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.08);
     }
+  } catch (e) {
+    console.log("Synthesizer trace handled:", e);
   }
 }
 
@@ -451,21 +441,24 @@ function occupantsAtAbs(absIdx, excludeColor){
 
 function isSafeAbs(absIdx){ return SAFE_ABS.includes(absIdx); }
 
-function canTokenUseDie(player, token, dieValue, canOpenNow){
+// FIXED: Token can now only open if that SPECIFIC selected die evaluation is a 6 or double
+function canTokenUseDie(player, token, dieValue){
   if(token.state==='done') return false;
-  if(token.state==='yard') return canOpenNow;
+  if(token.state==='yard') {
+    return dieValue === 6 || state.diceIsDouble;
+  }
   const newPos = token.pos + dieValue;
   if(newPos > 57) return false;
   if(token.pos < 51 && newPos >= 51 && !player.hasKilled) return false;
   return true;
 }
 
+// FIXED: Passed specific single die context calculation variables directly
 function getLegalDiceIndicesForToken(player, token) {
   if (isAnimatingMove) return []; 
   const indices = [];
-  const canOpenNow = state.diceIsDouble || state.dice.includes(6);
   [0, 1].forEach(idx => {
-    if (!state.diceUsed[idx] && canTokenUseDie(player, token, state.dice[idx], canOpenNow)) {
+    if (!state.diceUsed[idx] && canTokenUseDie(player, token, state.dice[idx])) {
       indices.push(idx);
     }
   });
@@ -631,6 +624,7 @@ function executeBotTurn() {
     return;
   }
 
+  // Priority sorting logic
   choices.sort((a, b) => {
     if(a.token.state === 'yard' && b.token.state !== 'yard') return -1;
     return b.token.pos - a.token.pos; 
@@ -1021,9 +1015,12 @@ labels.forEach(lbl => {
   });
 });
 
-document.getElementById('enterGameBtn').addEventListener('click', async () => {
-  // Trigger audio pipeline permission handshake via single click interaction trace
-  await forceUnlockBrowserAudio();
+document.getElementById('enterGameBtn').addEventListener('click', () => {
+  // Hardwired user handshake audio activation trigger track
+  initAudioContext();
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
   
   const selectedMode = document.querySelector('input[name="gameMode"]:checked').value;
   document.getElementById('rulesGateway').classList.remove('show');
@@ -1044,3 +1041,6 @@ document.addEventListener('click', (e) => {
 </script>
 </body>
 </html>
+"""
+
+display(HTML(html_content))
