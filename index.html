@@ -1,3 +1,4 @@
+
 Anther
 <!DOCTYPE html>
 <html lang="en">
@@ -167,9 +168,11 @@ Anther
   }
   .pip{width:8px;height:8px;border-radius:50%;background:var(--ink);align-self:center;justify-self:center;opacity:0;}
   .pip.on{opacity:1;}
+  
+  .btn-group { display: flex; gap: 10px; align-items: center; justify-content: center; width: 100%; margin-top: 2px;}
   .roll-btn{
     font-family:'Baloo 2';font-weight:700;font-size:15px;
-    padding:8px 24px;border:none;border-radius:24px;
+    padding:8px 28px;border:none;border-radius:24px;
     background:linear-gradient(160deg, var(--gold), #c9962f);
     color:#3a2604;
     box-shadow:0 4px 0 #9c7018, 0 6px 12px rgba(0,0,0,0.4);
@@ -177,6 +180,27 @@ Anther
   }
   .roll-btn:active{transform:translateY(2px);box-shadow:0 2px 0 #9c7018;}
   .roll-btn:disabled{opacity:0.4;cursor:not-allowed;box-shadow:none;transform:none;}
+  
+  .mute-btn {
+    font-family: 'Baloo 2', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 8px 20px;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--cream);
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transition: all 0.2s ease;
+  }
+  .mute-btn:hover { background: rgba(255, 255, 255, 0.12); }
+  .mute-btn.muted {
+    background: rgba(232, 72, 58, 0.2);
+    border-color: var(--red);
+    color: #ffc2bd;
+  }
+
   .msg{min-height:16px;font-size:12.5px;font-weight:700;color:var(--gold);text-align:center;}
   
   .legend{display:flex;gap:12px;justify-content:center;font-size:11px;color:#cfe8da;margin-top:2px;}
@@ -249,7 +273,10 @@ Anther
       <div class="die" id="die0"></div>
       <div class="die" id="die1"></div>
     </div>
-    <button class="roll-btn" id="rollBtn" disabled>Roll Dice</button>
+    <div class="btn-group">
+      <button class="roll-btn" id="rollBtn" disabled>Roll Dice</button>
+      <button class="mute-btn" id="muteBtn">🔈 Sound On</button>
+    </div>
   </div>
 
   <div class="legend">
@@ -348,16 +375,20 @@ const HEXSOLID = { red:'#e8483a', green:'#2fae66', yellow:'#f2ab27', blue:'#3a7d
 
 let state = null;
 let isAnimatingMove = false; 
-
 let audioCtx = null;
+let isMuted = false;
 
 function initAudioContext() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
 }
 
 function playStepSound() {
+  if (isMuted) return;
   try {
     initAudioContext();
     if (audioCtx && audioCtx.state !== 'suspended') {
@@ -712,20 +743,17 @@ function tokenPixelPos(color, token){
   return [cIdx*CELL+CELL/2, r*CELL+CELL/2];
 }
 
-// FIXED: Enhanced dynamic positioning configuration cluster map layout
 function renderTokens(){
   const layer = document.getElementById('tokenLayer');
   layer.innerHTML = '';
   const activeMainPlayer = currentPlayer();
 
-  // Step 1: Cluster and index every active track token across the canvas layout
   const globalCellMap = {};
 
   for (const p of state.players) {
     p.tokens.forEach(t => {
       if (t.state === 'yard' || t.state === 'done') return;
       
-      // Form absolute map coordinate registry string keys
       let cellKey = '';
       if (t.state === 'path') {
         cellKey = `path:${absIndexFor(p.color, t.pos)}`;
@@ -740,7 +768,6 @@ function renderTokens(){
     });
   }
 
-  // Step 2: Render all tokens applying precise relative distribution vectors
   for(const p of state.players){
     p.tokens.forEach(t => {
       let [cx, cy] = tokenPixelPos(p.color, t);
@@ -750,21 +777,15 @@ function renderTokens(){
         const cluster = globalCellMap[cellKey] || [];
         
         if (cluster.length > 1) {
-          // Find this specific token's index inside the cluster
           const tokenIndex = cluster.findIndex(item => item.player.color === p.color && item.token.id === t.id);
-          
-          // Generate an elegant radial offset arrangement mapping up to 16 positions safely
           const totalItems = cluster.length;
           const angle = (tokenIndex * (2 * Math.PI / totalItems));
-          
-          // Micro dynamic radius based on how crowded the specific stop is
           const radius = totalItems <= 2 ? 6 : (totalItems <= 4 ? 9 : 12);
           
           cx += Math.cos(angle) * radius;
           cy += Math.sin(angle) * radius * 0.8; 
         }
       } else if (t.state === 'done') {
-        // Subtle offset for stacked items in the final goal vector
         cx += (t.id - 1.5) * 5;
         cy += (t.id - 1.5) * 2;
       }
@@ -1046,16 +1067,27 @@ labels.forEach(lbl => {
 
 document.getElementById('enterGameBtn').addEventListener('click', () => {
   initAudioContext();
-  if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
-  
   const selectedMode = document.querySelector('input[name="gameMode"]:checked').value;
   document.getElementById('rulesGateway').classList.remove('show');
   init(selectedMode);
 });
 
 document.getElementById('rollBtn').addEventListener('click', onRollClick);
+
+const muteBtn = document.getElementById('muteBtn');
+muteBtn.addEventListener('click', () => {
+  initAudioContext(); 
+  isMuted = !isMuted;
+  if (isMuted) {
+    muteBtn.textContent = "🔇 Muted";
+    muteBtn.classList.add('muted');
+  } else {
+    muteBtn.textContent = "🔈 Sound On";
+    muteBtn.classList.remove('muted');
+    playStepSound(); 
+  }
+});
+
 document.getElementById('playAgainBtn').addEventListener('click', ()=>{
   document.getElementById('victoryOverlay').classList.remove('show');
   document.getElementById('rulesGateway').classList.add('show');
