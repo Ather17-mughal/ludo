@@ -254,8 +254,9 @@
     <div class="rules-list">
       <b>1. Always Two Dice:</b> Both dice roll together on every single turn.<br><br>
       <b>2. Any Double = 6 &amp; 6 + Bonus:</b> Pairs (1-1 to 6-6) play as double sixes, unlock yard tokens, and grant an instant bonus roll.<br><br>
-      <b>3. Shared Stacks are Fatal:</b> Landing on an opponent stack kills <i>all</i> tokens sitting there, stacking massive extra turns.<br><br>
-      <b>4. Blood Before Home:</b> You cannot enter the home column until you kill an opponent. If all active tokens get sent back to base, clearance is revoked!
+      <b>3. Shared Stacks are Fatal:</b> Landing on an opponent stack kills <i>all</i> tokens sitting there.<br><br>
+      <b>4. Cap on Move Bonuses:</b> Achieving multiple milestones at once (e.g., double kill, or a kill + scoring a home goal simultaneously) awards only <b>one</b> action bonus roll.<br><br>
+      <b>5. Blood Before Home:</b> You cannot enter the home column until you kill an opponent. If all active tokens get sent back to base, clearance is revoked!
     </div>
     <button id="enterGameBtn">ENTER ARENA</button>
   </div>
@@ -376,8 +377,8 @@ function performMove(tokenId, dieIdx){
   const player = currentPlayer();
   const token = player.tokens.find(t=>t.id===tokenId);
   const dieValue = state.dice[dieIdx];
-  let capturesCount = 0;
-  let completedSomething = false;
+  let killedThisMove = false;
+  let completedThisMove = false;
 
   state.diceUsed[dieIdx] = true;
 
@@ -386,7 +387,7 @@ function performMove(tokenId, dieIdx){
   } else {
     token.pos += dieValue;
     if(token.pos>=51 && token.pos<=56){ token.state='home'; }
-    if(token.pos===57){ token.state='done'; completedSomething=true; }
+    if(token.pos===57){ token.state='done'; completedThisMove=true; }
   }
 
   if(token.pos>=0 && token.pos<=50){
@@ -398,7 +399,7 @@ function performMove(tokenId, dieIdx){
         g.ids.forEach(eid => {
           const enemyToken = enemy.tokens.find(t=>t.id===eid);
           enemyToken.state='yard'; enemyToken.pos=-1;
-          capturesCount++;
+          killedThisMove = true;
         });
         
         const activeTokens = enemy.tokens.filter(t => t.state !== 'done');
@@ -411,13 +412,15 @@ function performMove(tokenId, dieIdx){
     }
   }
 
-  if(capturesCount > 0){
+  // Adjusted Logic: If they killed or scored home, add exactly 1 bonus roll max for this turn segment
+  if(killedThisMove){
     player.hasKilled = true;
-    state.extraRolls += capturesCount;
   }
-  if(completedSomething){
-    state.extraRolls += 1;
+  
+  if(killedThisMove || completedThisMove){
+    state.extraRolls = 1; 
   }
+
   if(player.tokens.every(t=>t.state==='done')){
     player.finished = true;
     state.winner = player.color;
@@ -732,7 +735,7 @@ function finishRoll(){
 function resolveTurnSegment(){
   const player = currentPlayer();
   if(state.diceIsDouble){
-    state.extraRolls += 1;
+    state.extraRolls = 1; 
   }
   if(state.extraRolls>0){
     state.extraRolls -= 1;
@@ -772,7 +775,6 @@ function init(){
   setMsg('Tap Roll to begin');
 }
 
-// Event Listeners for Gateway Screening
 document.getElementById('enterGameBtn').addEventListener('click', () => {
   document.getElementById('rulesGateway').classList.remove('show');
   document.getElementById('rollBtn').disabled = false;
